@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model City {
+  id      Int      @id @default(autoincrement())
+  name    String
+  centers Center[]
+}
+
+model Center {
+  id         Int      @id @default(autoincrement())
+  name       String
+  address    String?
+  centerCode String   @unique
+  cityId     Int
+  city       City     @relation(fields: [cityId], references: [id])
+
+  patients     Patient[]
+  appointments Appointment[]   // ✅ FIX ADDED
+  users        User[]
+}
+
+model Patient {
+  id          Int     @id @default(autoincrement())
+  name        String
+  age         Int
+  gender      String
+  phone       String
+  bloodGroup  String?
+  location    String?
+  primaryDiagnosis String?
+  dialysisType String?
+  dialysisFrequency String?
+  vascularAccess String?
+  dialysisSince DateTime?
+  preferredSlot String?
+  allergies   String?
+  comorbidities String?
+  medicalHistory String?
+  emergencyContactName String?
+  emergencyContactPhone String?
+  centerId    Int
+  center      Center  @relation(fields: [centerId], references: [id])
+
+  appointments Appointment[]
+  sessions     Session[]
+  files        File[]          // Files relation
+  user         User?           // 1-to-1 User relation
+
+  createdAt   DateTime @default(now())
+}
+
+model Appointment {
+  id        Int      @id @default(autoincrement())
+  patientId Int
+  centerId  Int
+  date      DateTime
+  status    String   @default("scheduled")
+
+  patient   Patient  @relation(fields: [patientId], references: [id])
+  center    Center   @relation(fields: [centerId], references: [id])
+  sessions  Session[]
+
+  createdAt DateTime @default(now())
+}
+
+model Session {
+  id            Int      @id @default(autoincrement())
+  appointmentId Int
+  patientId     Int
+
+  weightBefore  Float?
+  weightAfter   Float?
+  bp            String?
+  notes         String?
+
+  createdAt     DateTime @default(now())
+
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  patient       Patient     @relation(fields: [patientId], references: [id])
+}
+
+model File {
+  id         Int      @id @default(autoincrement())
+  patientId  Int
+  fileUrl    String
+  fileType   String
+  uploadedAt DateTime @default(now())
+
+  patient    Patient  @relation(fields: [patientId], references: [id])
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email      String   @unique
+  supabaseId String   @unique
+  role       String   @default("STAFF")
+  centerId  Int?     
+  patientId Int?     @unique
+  
+  center    Center?  @relation(fields: [centerId], references: [id])
+  patient   Patient? @relation(fields: [patientId], references: [id])
+}

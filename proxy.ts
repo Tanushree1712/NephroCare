@@ -1,0 +1,13 @@
+import { NextResponse } from "next/server";
+
+export function proxy() {
+  // Authentication is intentionally bypassed while the app relies on
+  // route-level session checks and Supabase-managed client auth.
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
+};

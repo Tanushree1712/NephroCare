@@ -1,0 +1,103 @@
+# NephroCare+ Technical Breakdown & Status Report
+
+This document outlines the detailed architectural state and implementation requirements for all 7 phases of the NephroCare+ application.
+
+---
+
+## 🟢 PHASE 1: Foundation (Status: ✅ Complete)
+**Goal:** Establish the core Next.js architecture and initial database schema for cities, centers, and patients.
+
+### 1. Database Schema (`Prisma`)
+- **`City` Model**: Stores city names.
+- **`Center` Model**: Relates to `City` (1-to-Many). Stores center name, address, and `centerCode`.
+- **`Patient` Model**: Relates to `Center` (1-to-Many). Tracks name, age, gender, phone, and blood group.
+
+### 2. Backend / APIs (`/app/api/...`)
+- **`GET /api/patients`**: Fetches all patients and uses Prisma `include` to join the related Center and City data.
+- **`POST /api/patients`**: Handles incoming JSON to create a new patient, enforcing required fields (Name and Center ID).
+
+### 3. Frontend UI (`/app/patients/page.tsx`)
+- A React Client Component (`"use client"`) utilizing standard React `useState` and `useEffect`.
+- On mount, it concurrently fetches lists of patients and centers.
+- Renders a Tailwind CSS customized form with dynamic `<select>` fields corresponding to the fetched Centers.
+- On submit, makes a `POST` request, clears the form state, and re-fetches the patient list to display the newly added record in real-time.
+
+---
+
+## 🟡 PHASE 2: Appointments (Status: 🟡 Mostly Complete)
+**Goal:** Build a robust scheduling system for patients across centers.
+
+### 1. Database Schema (`Prisma`)
+- **`Appointment` Model**: Relates to both `Patient` and `Center` (Many-to-1). Tracks the `date` as a `DateTime` object and includes a `status` field defaulting to `"scheduled"`.
+
+### 2. Backend / APIs (`/app/api/appointments/...`)
+- **`GET /api/appointments`**: Fetches appointments ordered by date (`asc`), joining Patient and Center data.
+- **`POST /api/appointments`**: Parses `patientId`, `centerId`, and `date`, inserting them into the database.
+
+### 3. Frontend UI (`/app/appointments/page.tsx`)
+- A booking interface with a `<input type="datetime-local">` constraint.
+- Fetches patients, centers, and existing appointments recursively using `Promise.all` for performance.
+- **Pending Task**: The UI currently lacks a way to update or display the appointment `status` (e.g., mark as completed/missed).
+
+---
+
+## 🔵 PHASE 3: Dialysis Sessions (Status: ✅ Complete)
+**Goal:** Log exact medical parameters during a patient's dialysis session.
+
+### 1. Database Schema (`Prisma`)
+- **`Session` Model**: Built with a 1-to-1/Many-to-1 relation to the `Appointment` and `Patient`. Tracks numeric values for `weightBefore`/`weightAfter`, strings for `bp` (Blood Pressure), and text for clinical `notes`.
+
+### 2. Backend / APIs (`/app/api/sessions/...`)
+- **`GET /api/sessions`**: Fetches all session logs, deeply joining `Appointment -> Center -> City` data to provide a full context.
+- **`POST /api/sessions`**: Advanced route that validates and safely parses numeric payload data before Prisma schema insertion.
+
+### 3. Frontend UI (`/app/sessions/page.tsx`)
+- Form logic detects the selected `appointmentId` and intelligently auto-populates the hidden `patientId` behind the scenes to maintain database referential integrity naturally.
+
+---
+
+## 🟣 PHASE 4: File Uploads (Status: ⏳ Pending)
+**Goal:** Secure digital medical artifact storage linked to patients.
+
+### Implementation Requirements:
+1. **Database Update**: Add a `File` or `Document` model to `schema.prisma`.
+   - Fields: `id`, `patientId` (FK), `fileUrl`, `fileType`, `uploadedAt`.
+2. **Storage Provider**: Setup Supabase Storage buckets. Integrate the `@supabase/supabase-js` SDK on the backend.
+3. **API Logic (`/api/files`)**: Endpoints to securely accept `multipart/form-data` streams, upload to Supabase, and retrieve the public/signed URL to store in Prisma.
+4. **UI Component**: Next.js dropzone component that allows Drag-and-Drop file uploads with progress indicators.
+
+---
+
+## 🔴 PHASE 5: Dashboard (Status: ⏳ Pending)
+**Goal:** The global administrative control center layout.
+
+### Implementation Requirements:
+1. **Global Layout (`/app/layout.tsx`)**: Establish a permanent Sidebar navigation menu linking to Dashboard, Patients, Appointments, Sessions, and Uploads.
+2. **Dashboard UI (`/app/page.tsx`)**: Clear out the boilerplate Next.js homepage.
+3. **Data Aggregation Routes**: Create specific APIs (or utilize Server Actions) to calculate statistics:
+   - *Total Patients Count (by City)*
+   - *Total Appointments Today*
+   - *Center Load Percentages*
+4. **Visuals**: Implement simple, clean metric cards and CSS Grid layouts.
+
+---
+
+## ⚫ PHASE 6: Authentication (Status: ⏳ Pending)
+**Goal:** Role-based security access.
+
+### Implementation Requirements:
+1. **Database Update**: Add a `User` model to Prisma.
+   - Fields: `id`, `name`, `role` (Enum: Admin, Doctor, Staff), `centerId` (optional FK), `email`, `password` (hashed).
+2. **NextAuth Integration**: Install `next-auth`. Configure credentials provider using `bcrypt` for password hashing.
+3. **Middleware Guards**: Implement `middleware.ts` to strictly protect `/dashboard`, `/appointments`, etc., redirecting unauthenticated users to `/login`.
+4. **Role Routing**: Restrict Doctors from seeing "Global Admin" settings and restrict Staff from viewing sensitive clinical Session notes.
+
+---
+
+## 🟠 PHASE 7: Advanced Features (Status: ⏳ Pending)
+**Goal:** Quality of life polish and data intelligence tasks.
+
+### Implementation Requirements:
+1. **Chron Jobs / Alerts**: Setup background checks to flag an Appointment `status` as `"missed"` if the datetime passes without a linked Session.
+2. **Chronological Timeline UI**: Build a specific Patient detail view (`/app/patients/[id]/page.tsx`) that visualizes their Session history mapped across dates.
+3. **PDF Generation**: Add utility tools (`jspdf` or `puppeteer`) to generate downloadable Session reports per patient.

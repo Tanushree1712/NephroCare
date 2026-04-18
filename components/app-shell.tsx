@@ -1,0 +1,224 @@
+"use client";
+
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  Activity,
+  CalendarPlus2,
+  CalendarRange,
+  FileHeart,
+  HeartHandshake,
+  House,
+  LogOut,
+  Sparkles,
+  Users,
+} from "lucide-react";
+import type { CurrentAppUser } from "@/lib/current-user";
+
+type AppShellProps = {
+  children: ReactNode;
+  user: CurrentAppUser | null;
+};
+
+function isActiveRoute(pathname: string, href: string) {
+  if (href === "/") {
+    return pathname === "/";
+  }
+
+  return pathname.startsWith(href);
+}
+
+export function AppShell({ children, user }: AppShellProps) {
+  const pathname = usePathname();
+  const isAuthRoute = pathname === "/login" || pathname === "/register";
+
+  if (!user || isAuthRoute) {
+    return <>{children}</>;
+  }
+
+  const patientNavigation = [
+    { href: "/", label: "Home", compactLabel: "Home", icon: House },
+    { href: "/book", label: "Find a session", compactLabel: "Book", icon: CalendarPlus2 },
+    user.patientId
+      ? {
+          href: `/patients/${user.patientId}`,
+          label: "My profile",
+          compactLabel: "Profile",
+          icon: FileHeart,
+        }
+      : null,
+  ].filter(Boolean) as Array<{
+    href: string;
+    label: string;
+    compactLabel: string;
+    icon: typeof House;
+  }>;
+
+  const adminNavigation = [
+    { href: "/", label: "Dashboard", compactLabel: "Home", icon: House },
+    { href: "/patients", label: "Patients", compactLabel: "Patients", icon: Users },
+    {
+      href: "/appointments",
+      label: "Appointments",
+      compactLabel: "Bookings",
+      icon: CalendarRange,
+    },
+  ];
+
+  const navigation = user.patientId ? patientNavigation : adminNavigation;
+  const initials = user.name
+    .split(" ")
+    .map((name) => name[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <div className="relative min-h-screen">
+      <div className="mx-auto flex w-full max-w-[1480px] gap-6 px-4 py-5 lg:px-6 lg:py-6">
+        <aside className="hidden w-[280px] shrink-0 flex-col gap-6 lg:flex">
+          <div className="rounded-[30px] border border-white/70 bg-white/78 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.12)] backdrop-blur-xl">
+            <Link href="/" className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,#17bfd3_0%,#0e9a9d_100%)] text-white shadow-[0_14px_30px_rgba(20,190,211,0.25)]">
+                <Activity className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                  NephroCare
+                </p>
+                <h1 className="font-display text-2xl text-slate-900">Patient App</h1>
+              </div>
+            </Link>
+
+            <nav className="mt-8 flex flex-col gap-2">
+              {navigation.map((item) => {
+                const Icon = item.icon;
+                const isActive = isActiveRoute(pathname, item.href);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`group flex items-center gap-3 rounded-[22px] px-4 py-3 text-sm font-semibold transition-all ${
+                      isActive
+                        ? "bg-[linear-gradient(135deg,#1cc6d8_0%,#129aa1_100%)] text-white shadow-[0_16px_30px_rgba(18,154,161,0.22)]"
+                        : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-10 w-10 items-center justify-center rounded-2xl ${
+                        isActive
+                          ? "bg-white/18 text-white"
+                          : "bg-slate-100 text-slate-500 transition-colors group-hover:bg-white group-hover:text-teal-600"
+                      }`}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="mt-8 rounded-[24px] bg-slate-950 px-5 py-5 text-white shadow-[0_24px_48px_rgba(15,23,42,0.2)]">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-sm font-bold">
+                  {initials || "NC"}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-base font-bold">{user.name}</p>
+                  <p className="text-xs uppercase tracking-[0.24em] text-cyan-200/80">
+                    {user.role}
+                  </p>
+                </div>
+              </div>
+
+              <form action="/auth/signout" method="post" className="mt-5">
+                <button
+                  type="submit"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign out
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div className="rounded-[30px] bg-[linear-gradient(135deg,#0f8f9d_0%,#1bc4d6_100%)] p-6 text-white shadow-[0_24px_80px_rgba(18,166,183,0.22)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-white/14">
+              <HeartHandshake className="h-6 w-6" />
+            </div>
+            <h2 className="mt-5 font-display text-[1.75rem] leading-none">
+              Care that feels personal.
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-cyan-50/92">
+              Keep your dialysis details, bookings, and center preferences in one calm,
+              patient-friendly space.
+            </p>
+          </div>
+        </aside>
+
+        <div className="min-w-0 flex-1">
+          <header className="rounded-[28px] border border-white/70 bg-white/75 px-5 py-4 shadow-[0_24px_80px_rgba(20,139,152,0.08)] backdrop-blur-xl">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,#17bfd3_0%,#0e9a9d_100%)] text-white shadow-[0_14px_30px_rgba(20,190,211,0.22)] lg:hidden">
+                  <Activity className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                    {user.patientId ? "Patient portal" : "Operations"}
+                  </p>
+                  <h2 className="font-display text-[1.9rem] leading-none text-slate-900">
+                    {user.patientId ? "Your care hub" : "Clinical workspace"}
+                  </h2>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Link
+                  href={user.patientId ? "/book" : "/appointments"}
+                  className="inline-flex items-center gap-2 rounded-[18px] bg-[linear-gradient(135deg,#17bfd3_0%,#0e9a9d_100%)] px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(20,190,211,0.25)] transition-transform hover:-translate-y-0.5"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {user.patientId ? "Book a session" : "Open schedule"}
+                </Link>
+                <div className="hidden rounded-[18px] border border-slate-200/80 bg-white/80 px-4 py-3 text-sm text-slate-600 sm:block">
+                  Signed in as <span className="font-semibold text-slate-900">{user.email}</span>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="pb-24 pt-6 lg:pb-6">{children}</main>
+        </div>
+      </div>
+
+      <div className="fixed bottom-4 left-1/2 z-40 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-[28px] border border-white/80 bg-white/88 p-2 shadow-[0_20px_60px_rgba(15,118,128,0.18)] backdrop-blur-xl lg:hidden">
+        <div className={`grid gap-2 ${navigation.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+          {navigation.map((item) => {
+            const Icon = item.icon;
+            const isActive = isActiveRoute(pathname, item.href);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex flex-col items-center gap-1 rounded-[20px] px-3 py-3 text-xs font-semibold transition-colors ${
+                  isActive
+                    ? "bg-[linear-gradient(135deg,#17bfd3_0%,#0e9a9d_100%)] text-white"
+                    : "text-slate-500"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{item.compactLabel}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
