@@ -36,6 +36,13 @@ type Appointment = {
   center: Center;
 };
 
+type WorkspaceUser = {
+  patientId?: number | null;
+  centerId?: number | null;
+  role?: string | null;
+  center?: Center | null;
+};
+
 type AppointmentFormState = {
   patientId: string;
   centerId: string;
@@ -65,6 +72,7 @@ export default function AppointmentPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [centers, setCenters] = useState<Center[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [viewer, setViewer] = useState<WorkspaceUser | null>(null);
   const [form, setForm] = useState<AppointmentFormState>(initialForm);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -75,22 +83,29 @@ export default function AppointmentPage() {
 
     void (async () => {
       try {
-        const [patientsResponse, centersResponse, appointmentsResponse] =
+        const [patientsResponse, centersResponse, appointmentsResponse, userResponse] =
           await Promise.all([
             fetch("/api/patients"),
             fetch("/api/centers"),
             fetch("/api/appointments"),
+            fetch("/api/users/me"),
           ]);
 
-        if (!patientsResponse.ok || !centersResponse.ok || !appointmentsResponse.ok) {
+        if (
+          !patientsResponse.ok ||
+          !centersResponse.ok ||
+          !appointmentsResponse.ok ||
+          !userResponse.ok
+        ) {
           throw new Error("Failed to load appointment data.");
         }
 
-        const [patientsData, centersData, appointmentsData] = (await Promise.all([
+        const [patientsData, centersData, appointmentsData, userData] = (await Promise.all([
           patientsResponse.json(),
           centersResponse.json(),
           appointmentsResponse.json(),
-        ])) as [Patient[], Center[], Appointment[]];
+          userResponse.json(),
+        ])) as [Patient[], Center[], Appointment[], WorkspaceUser];
 
         if (!active) {
           return;
@@ -99,6 +114,14 @@ export default function AppointmentPage() {
         setPatients(Array.isArray(patientsData) ? patientsData : []);
         setCenters(Array.isArray(centersData) ? centersData : []);
         setAppointments(Array.isArray(appointmentsData) ? appointmentsData : []);
+        setViewer(userData);
+
+        if (userData.centerId && !userData.patientId) {
+          setForm((currentForm) => ({
+            ...currentForm,
+            centerId: currentForm.centerId || String(userData.centerId),
+          }));
+        }
       } catch {
         if (active) {
           setError("We could not load appointments right now.");
@@ -186,6 +209,8 @@ export default function AppointmentPage() {
   const completedCount = appointments.filter(
     (appointment) => appointment.status === "completed"
   ).length;
+  const centerScoped = Boolean(viewer?.centerId && !viewer?.patientId);
+  const centerName = viewer?.center?.name ?? "your center";
 
   return (
     <div className="space-y-6">
@@ -193,14 +218,17 @@ export default function AppointmentPage() {
         <div className="grid gap-8 xl:grid-cols-[1.02fr_0.98fr]">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-100/74">
-              Appointment planning
+              {centerScoped ? "Center bookings" : "Appointment planning"}
             </p>
             <h1 className="mt-4 font-display text-[2.8rem] leading-[0.95]">
-              Schedule and manage dialysis visits.
+              {centerScoped
+                ? `Manage bookings for ${centerName}.`
+                : "Schedule and manage dialysis visits."}
             </h1>
             <p className="mt-5 max-w-2xl text-sm leading-7 text-cyan-50/92">
-              Coordinate upcoming sessions across centers, keep patient records aligned, and
-              update booking status in one place.
+              {centerScoped
+                ? "Review bookings for your center, update their status, and add new sessions without leaving your center-scoped desk."
+                : "Coordinate upcoming sessions across centers, keep patient records aligned, and update booking status in one place."}
             </p>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -279,11 +307,12 @@ export default function AppointmentPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/72">
-                    Center
+                    {centerScoped ? "Assigned center" : "Center"}
                   </label>
                   <select
                     className={inputClasses}
                     value={form.centerId}
+                    disabled={centerScoped}
                     onChange={(event) =>
                       setForm((currentForm) => ({
                         ...currentForm,
@@ -298,6 +327,11 @@ export default function AppointmentPage() {
                       </option>
                     ))}
                   </select>
+                  {centerScoped ? (
+                    <p className="mt-2 text-xs leading-5 text-cyan-50/84">
+                      New bookings created here stay linked to {centerName}.
+                    </p>
+                  ) : null}
                 </div>
                 <div>
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/72">

@@ -99,7 +99,8 @@ model File {
 model User {
   id        Int      @id @default(autoincrement())
   name      String
-  email      String   @unique
+  email     String   @unique
+  phone     String?
   supabaseId String   @unique
   role       String   @default("STAFF")
   centerId  Int?     

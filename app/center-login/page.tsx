@@ -1,16 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Activity, ArrowRight, LockKeyhole, Mail } from "lucide-react";
+import { Activity, ArrowRight, Building2, LockKeyhole, Mail } from "lucide-react";
 
 const inputClasses =
   "w-full rounded-[20px] border border-slate-200/80 bg-slate-50/90 px-4 py-3.5 text-sm font-medium text-slate-800 outline-none transition focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-100";
 
-export default function LoginPage() {
-  const searchParams = useSearchParams();
-  const [identifier, setIdentifier] = useState("");
+export default function CenterLoginPage() {
+  const [email, setEmail] = useState("");
+  const [centerCode, setCenterCode] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,7 +18,6 @@ export default function LoginPage() {
     event.preventDefault();
     setLoading(true);
     setError("");
-    const cleanedIdentifier = identifier.trim();
 
     if (process.env.NODE_ENV !== "production") {
       try {
@@ -29,7 +27,9 @@ export default function LoginPage() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            identifier: cleanedIdentifier,
+            identifier: email.trim(),
+            email: email.trim(),
+            centerCode: centerCode.trim().toUpperCase(),
             password,
           }),
         });
@@ -39,17 +39,18 @@ export default function LoginPage() {
           return;
         }
       } catch {
-        // Fall through to the Supabase login path.
+        // Fall through to the regular center login path.
       }
     }
 
-    const response = await fetch("/api/login", {
+    const response = await fetch("/api/center-login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        identifier: cleanedIdentifier,
+        email: email.trim(),
+        centerCode: centerCode.trim().toUpperCase(),
         password,
       }),
     });
@@ -67,33 +68,31 @@ export default function LoginPage() {
     window.location.assign(payload.redirectTo ?? "/");
   }
 
-  const registered = searchParams.get("registered") === "1";
-  const passwordReset = searchParams.get("reset") === "1";
-
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="w-full max-w-[1040px] rounded-[40px] border border-white/80 bg-white/60 p-4 shadow-[0_24px_80px_rgba(17,124,136,0.12)] backdrop-blur-2xl md:p-6">
-        <div className="grid gap-4 md:grid-cols-[0.92fr_1.08fr]">
-          <section className="rounded-[32px] bg-[linear-gradient(160deg,#0f98a2_0%,#17bfd3_54%,#95eef5_100%)] p-8 text-white">
+      <div className="w-full max-w-[1080px] rounded-[40px] border border-white/80 bg-white/60 p-4 shadow-[0_24px_80px_rgba(17,124,136,0.12)] backdrop-blur-2xl md:p-6">
+        <div className="grid gap-4 md:grid-cols-[0.95fr_1.05fr]">
+          <section className="rounded-[32px] bg-[linear-gradient(160deg,#073d48_0%,#0f98a2_50%,#8ce8f1_100%)] p-8 text-white">
             <div className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-white/18">
-              <Activity className="h-7 w-7" />
+              <Building2 className="h-7 w-7" />
             </div>
             <p className="mt-8 text-xs font-semibold uppercase tracking-[0.32em] text-cyan-50/82">
-              NephroCare+
+              Center access
             </p>
             <h1 className="mt-4 font-display text-[2.8rem] leading-[0.95]">
-              A calmer way to manage dialysis care.
+              Reception visibility, center by center.
             </h1>
             <p className="mt-5 max-w-sm text-sm leading-7 text-cyan-50/92">
-              Sign in to view your patient ID, update your profile, and book the nearest
-              dialysis session with less friction.
+              This portal is for reception and center staff. Sign in with your work
+              email, center code, and password to review registrations and bookings for
+              your assigned center only.
             </p>
 
             <div className="mt-10 space-y-3">
               {[
-                "Patient-first dashboard for upcoming sessions and care notes",
-                "Registration links every user to a dedicated patient ID",
-                "Location-aware onboarding for future center recommendations",
+                "Only registrations from your own center are visible here",
+                "Bookings stay filtered to your assigned center workspace",
+                "Patient-facing flows remain separate and untouched",
               ].map((item) => (
                 <div
                   key={item}
@@ -112,28 +111,16 @@ export default function LoginPage() {
 
             <div className="mt-6 text-center">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                Patient sign in
+                Reception sign in
               </p>
               <h2 className="mt-3 font-display text-[2.2rem] leading-none text-slate-900">
-                Welcome back
+                Open your center desk
               </h2>
               <p className="mt-3 text-sm leading-6 text-slate-500">
-                Use your registered email or profile name with your password to continue
-                to the home page.
+                Use the credentials issued for your center so we can scope the workspace
+                to your registrations and bookings.
               </p>
             </div>
-
-            {registered ? (
-              <div className="mt-6 rounded-[22px] border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-                Registration completed. Please sign in with your new account.
-              </div>
-            ) : null}
-
-            {passwordReset ? (
-              <div className="mt-6 rounded-[22px] border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-                Password updated. Sign in with your new password.
-              </div>
-            ) : null}
 
             {error ? (
               <div className="mt-6 rounded-[22px] border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
@@ -144,18 +131,35 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="mt-8 space-y-5">
               <div>
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                  Email or name
+                  Work email
                 </label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
-                    type="text"
+                    type="email"
                     required
                     autoComplete="username"
-                    placeholder="patient@example.com or Priya Sharma"
+                    placeholder="reception@center.com"
                     className={`${inputClasses} pl-11`}
-                    value={identifier}
-                    onChange={(event) => setIdentifier(event.target.value)}
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                  Center code
+                </label>
+                <div className="relative">
+                  <Building2 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="NAG-C1"
+                    className={`${inputClasses} pl-11 uppercase`}
+                    value={centerCode}
+                    onChange={(event) => setCenterCode(event.target.value)}
                   />
                 </div>
               </div>
@@ -178,35 +182,20 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-400">Secure access to your care plan</span>
-                <Link href="/forgot-password" className="font-semibold text-cyan-600">
-                  Forgot password?
-                </Link>
-              </div>
-
               <button
                 type="submit"
                 disabled={loading}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-[20px] bg-[linear-gradient(135deg,#17bfd3_0%,#0e9a9d_100%)] px-5 py-4 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(20,190,211,0.28)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {loading ? "Signing you in..." : "Continue to home"}
+                {loading ? "Opening your center desk..." : "Continue to center dashboard"}
                 <ArrowRight className="h-4 w-4" />
               </button>
             </form>
 
-            <div className="mt-6 rounded-[22px] border border-slate-200/80 bg-slate-50 px-4 py-4 text-sm text-slate-600">
-              Reception or center staff?{" "}
-              <Link href="/center-login" className="font-semibold text-cyan-600">
-                Use the center login
-              </Link>{" "}
-              to open a center-scoped workspace for registrations and bookings.
-            </div>
-
             <p className="mt-8 text-center text-sm text-slate-500">
-              New to NephroCare+?{" "}
-              <Link href="/register" className="font-semibold text-cyan-600">
-                Create your patient profile
+              Looking for the patient portal?{" "}
+              <Link href="/login" className="font-semibold text-cyan-600">
+                Go to patient sign in
               </Link>
             </p>
           </section>

@@ -3,16 +3,30 @@ import {
   createDevSessionValue,
   DEV_LOGIN_EMAIL,
   DEV_LOGIN_PASSWORD,
+  DEV_RECEPTION_LOGIN_EMAIL,
+  DEV_RECEPTION_LOGIN_PASSWORD,
   DEV_SESSION_COOKIE,
   devSessionCookieOptions,
   isDevLoginEnabled,
 } from "@/lib/dev-session";
 import { prisma } from "@/lib/prisma";
 
+function normalizeCenterCode(value?: string | null) {
+  return value?.trim().toUpperCase() ?? "";
+}
+
+function createDemoReceptionEmail(centerCode: string) {
+  return `reception.${centerCode.toLowerCase()}@nephrocare.plus`;
+}
+
 async function ensureDemoCenter() {
   const existingCenter = await prisma.center.findFirst({
     orderBy: { id: "asc" },
-    select: { id: true },
+    select: {
+      id: true,
+      name: true,
+      centerCode: true,
+    },
   });
 
   if (existingCenter) {
@@ -39,7 +53,11 @@ async function ensureDemoCenter() {
       centerCode: "DEM-C1",
       cityId: city.id,
     },
-    select: { id: true },
+    select: {
+      id: true,
+      name: true,
+      centerCode: true,
+    },
   });
 }
 
@@ -85,6 +103,7 @@ async function ensureDemoUser() {
         where: { id: existingUser.id },
         data: {
           name: "Demo Patient",
+          phone: "+91 99999 99999",
           role: "PATIENT",
           centerId: center.id,
           patientId: patient.id,
@@ -96,12 +115,56 @@ async function ensureDemoUser() {
       data: {
         name: "Demo Patient",
         email: DEV_LOGIN_EMAIL,
+        phone: "+91 99999 99999",
         supabaseId: "dev-demo-local-account",
         role: "PATIENT",
         centerId: center.id,
         patientId: patient.id,
       },
     });
+  });
+}
+
+async function ensureDemoReceptionUser(centerCode?: string) {
+  const normalizedCenterCode = normalizeCenterCode(centerCode);
+  const center = normalizedCenterCode
+    ? await prisma.center.findUnique({
+        where: { centerCode: normalizedCenterCode },
+        select: {
+          id: true,
+          name: true,
+          centerCode: true,
+        },
+      })
+    : await ensureDemoCenter();
+
+  if (!center) {
+    return null;
+  }
+
+  const email =
+    normalizedCenterCode && normalizedCenterCode !== "DEM-C1"
+      ? createDemoReceptionEmail(normalizedCenterCode)
+      : DEV_RECEPTION_LOGIN_EMAIL;
+
+  return prisma.user.upsert({
+    where: { email },
+    update: {
+      name: `${center.name} Reception`,
+      phone: "+91 88888 77777",
+      supabaseId: `dev-demo-reception-${center.centerCode.toLowerCase()}`,
+      role: "RECEPTIONIST",
+      centerId: center.id,
+      patientId: null,
+    },
+    create: {
+      name: `${center.name} Reception`,
+      email,
+      phone: "+91 88888 77777",
+      supabaseId: `dev-demo-reception-${center.centerCode.toLowerCase()}`,
+      role: "RECEPTIONIST",
+      centerId: center.id,
+    },
   });
 }
 
@@ -112,17 +175,42 @@ export async function POST(request: Request) {
 
   try {
     const body = (await request.json()) as {
+      identifier?: string;
       email?: string;
+      centerCode?: string;
       password?: string;
     };
-    const email = body.email?.trim().toLowerCase();
+    const identifier = body.identifier?.trim().toLowerCase();
+    const email = (body.email ?? body.identifier)?.trim().toLowerCase();
+    const centerCode = normalizeCenterCode(body.centerCode);
     const password = body.password;
+    const matchesDemoIdentity =
+      email === DEV_LOGIN_EMAIL || identifier === "demo patient";
+    const demoReceptionEmail = centerCode
+      ? createDemoReceptionEmail(centerCode)
+      : DEV_RECEPTION_LOGIN_EMAIL;
+    const matchesReceptionIdentity =
+      email === DEV_RECEPTION_LOGIN_EMAIL ||
+      identifier === "demo reception" ||
+      (Boolean(centerCode) && email === demoReceptionEmail);
 
-    if (email !== DEV_LOGIN_EMAIL || password !== DEV_LOGIN_PASSWORD) {
+    if (
+      (!matchesDemoIdentity || password !== DEV_LOGIN_PASSWORD) &&
+      (!matchesReceptionIdentity || password !== DEV_RECEPTION_LOGIN_PASSWORD)
+    ) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    const user = await ensureDemoUser();
+    const user = matchesReceptionIdentity
+      ? await ensureDemoReceptionUser(centerCode)
+      : await ensureDemoUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "That center code does not match a known demo center." },
+        { status: 404 }
+      );
+    }
     const response = NextResponse.json({ success: true });
 
     response.cookies.set({

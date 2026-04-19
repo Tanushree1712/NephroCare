@@ -12,8 +12,9 @@ import {
   Waves,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getCurrentAppUser } from "@/lib/current-user";
+import { getCurrentAppUser, getCurrentAuthUser } from "@/lib/current-user";
 import { formatPatientId } from "@/lib/patient-utils";
+import { getCenterScopeId, getUserPortalKind } from "@/lib/user-access";
 
 function formatDateTime(value: Date) {
   return new Intl.DateTimeFormat("en-IN", {
@@ -29,10 +30,17 @@ export default async function DashboardPage() {
   const currentUser = await getCurrentAppUser();
 
   if (!currentUser) {
-    redirect("/login");
+    const authUser = await getCurrentAuthUser();
+    redirect(authUser ? "/register" : "/login");
   }
 
-  if (currentUser.patientId) {
+  const portalKind = getUserPortalKind(currentUser);
+
+  if (portalKind === "patient") {
+    if (!currentUser.patientId) {
+      redirect("/register");
+    }
+
     const patient = await prisma.patient.findUnique({
       where: { id: currentUser.patientId },
       include: {
@@ -102,7 +110,7 @@ export default async function DashboardPage() {
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link
                   href="/book"
-                  className="inline-flex items-center gap-2 rounded-[18px] bg-white px-5 py-3 text-sm font-semibold text-cyan-700 transition-transform hover:-translate-y-0.5"
+                  className="inline-flex items-center gap-2 rounded-[18px] bg-white px-5 py-3 text-sm font-semibold !text-black transition-transform hover:-translate-y-0.5"
                 >
                   Book a session
                   <ArrowRight className="h-4 w-4" />
@@ -335,6 +343,296 @@ export default async function DashboardPage() {
                     : "Your future session readings will appear here."}
                 </p>
               </div>
+            </div>
+          </article>
+        </section>
+      </div>
+    );
+  }
+
+  const centerScopeId = getCenterScopeId(currentUser);
+
+  if (centerScopeId) {
+    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const [
+      center,
+      totalPatients,
+      totalSessions,
+      appointmentsToday,
+      recentPatients,
+      upcomingAppointments,
+    ] = await Promise.all([
+      prisma.center.findUnique({
+        where: { id: centerScopeId },
+        include: {
+          city: true,
+        },
+      }),
+      prisma.patient.count({
+        where: { centerId: centerScopeId },
+      }),
+      prisma.session.count({
+        where: {
+          appointment: {
+            centerId: centerScopeId,
+          },
+        },
+      }),
+      prisma.appointment.count({
+        where: {
+          centerId: centerScopeId,
+          date: { gte: today, lt: tomorrow },
+          status: "scheduled",
+        },
+      }),
+      prisma.patient.findMany({
+        where: { centerId: centerScopeId },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 4,
+      }),
+      prisma.appointment.findMany({
+        where: {
+          centerId: centerScopeId,
+          date: {
+            gte: now,
+          },
+        },
+        orderBy: {
+          date: "asc",
+        },
+        take: 5,
+        include: {
+          patient: true,
+          center: {
+            include: {
+              city: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    if (!center) {
+      redirect("/center-login");
+    }
+
+    return (
+      <div className="space-y-6">
+        <section className="overflow-hidden rounded-[34px] bg-[linear-gradient(135deg,#083844_0%,#0f8797_44%,#21c7d9_100%)] px-6 py-7 text-white shadow-[0_24px_80px_rgba(10,120,132,0.22)] md:px-8 md:py-8">
+          <div className="grid gap-8 lg:grid-cols-[1.12fr_0.88fr]">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/72">
+                Reception workspace
+              </p>
+              <h1 className="mt-4 font-display text-[2.8rem] leading-[0.95] md:text-[3.3rem]">
+                {center.name}
+              </h1>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-cyan-50/92 md:text-base">
+                This view is scoped to your center only. Review new registrations,
+                monitor today&apos;s bookings, and open patient records without seeing the
+                rest of the network.
+              </p>
+
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <span className="rounded-full border border-white/16 bg-white/12 px-4 py-2 text-sm font-semibold text-white">
+                  {center.centerCode}
+                </span>
+                <span className="rounded-full border border-white/16 bg-white/12 px-4 py-2 text-sm font-semibold text-white">
+                  {center.city.name}
+                </span>
+              </div>
+
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Link
+                    href="/patients"
+                    className="inline-flex items-center gap-2 rounded-[18px] bg-white px-5 py-3 text-sm font-semibold !text-black transition-transform hover:-translate-y-0.5"
+                  >
+                    Review registrations
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                <Link
+                  href="/appointments"
+                  className="inline-flex items-center gap-2 rounded-[18px] border border-white/18 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/16"
+                >
+                  Open bookings
+                </Link>
+              </div>
+            </div>
+
+            <div className="rounded-[28px] border border-white/14 bg-white/10 p-5 backdrop-blur">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-white/16">
+                  <CalendarClock className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/74">
+                    Today at your center
+                  </p>
+                  <p className="mt-1 text-2xl font-semibold text-white">
+                    {appointmentsToday} booking{appointmentsToday === 1 ? "" : "s"} scheduled
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-[22px] bg-white/12 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/72">
+                    Latest registration
+                  </p>
+                  <p className="mt-2 text-lg font-semibold text-white">
+                    {recentPatients[0]?.name ?? "No new registrations yet"}
+                  </p>
+                  <p className="mt-1 text-sm text-cyan-50/84">
+                    {recentPatients[0]
+                      ? formatPatientId(
+                          recentPatients[0].id,
+                          center.centerCode,
+                          recentPatients[0].createdAt
+                        )
+                      : "New patients will appear here"}
+                  </p>
+                </div>
+                <div className="rounded-[22px] bg-white/12 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/72">
+                    Next booking
+                  </p>
+                  <p className="mt-2 text-lg font-semibold text-white">
+                    {upcomingAppointments[0]
+                      ? formatDateTime(upcomingAppointments[0].date)
+                      : "No future bookings"}
+                  </p>
+                  <p className="mt-1 text-sm text-cyan-50/84">
+                    {upcomingAppointments[0]?.patient.name ?? "Your queue is clear for now"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-3">
+          {[
+            { label: "Registered patients", value: totalPatients, icon: Building2 },
+            { label: "Bookings today", value: appointmentsToday, icon: CalendarClock },
+            { label: "Session logs", value: totalSessions, icon: Activity },
+          ].map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <article
+                key={item.label}
+                className="rounded-[28px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-cyan-50 text-cyan-700">
+                  <Icon className="h-6 w-6" />
+                </div>
+                <p className="mt-5 text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                  {item.label}
+                </p>
+                <p className="mt-2 text-4xl font-semibold text-slate-900">{item.value}</p>
+              </article>
+            );
+          })}
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+          <article className="rounded-[32px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl md:p-7">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-cyan-50 text-cyan-700">
+                <HeartPulse className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                  Registrations
+                </p>
+                <h2 className="mt-1 font-display text-[2rem] leading-none text-slate-900">
+                  Recent patient sign-ups
+                </h2>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {recentPatients.length === 0 ? (
+                <div className="rounded-[24px] border border-dashed border-slate-200 px-5 py-8 text-sm text-slate-500">
+                  No patient registrations have been created for this center yet.
+                </div>
+              ) : (
+                recentPatients.map((patient) => (
+                  <Link
+                    key={patient.id}
+                    href={`/patients/${patient.id}`}
+                    className="flex items-center justify-between rounded-[24px] bg-slate-50 px-5 py-4 transition-colors hover:bg-cyan-50/70"
+                  >
+                    <div>
+                      <p className="text-base font-semibold text-slate-900">{patient.name}</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Registered{" "}
+                        {new Intl.DateTimeFormat("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        }).format(patient.createdAt)}
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold text-cyan-700">
+                      {formatPatientId(patient.id, center.centerCode, patient.createdAt)}
+                    </span>
+                  </Link>
+                ))
+              )}
+            </div>
+          </article>
+
+          <article className="rounded-[32px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl md:p-7">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-cyan-50 text-cyan-700">
+                <CalendarClock className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                  Bookings
+                </p>
+                <h2 className="mt-1 font-display text-[2rem] leading-none text-slate-900">
+                  Upcoming queue
+                </h2>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {upcomingAppointments.length === 0 ? (
+                <div className="rounded-[24px] border border-dashed border-slate-200 px-5 py-8 text-sm text-slate-500">
+                  No future bookings are scheduled for this center yet.
+                </div>
+              ) : (
+                upcomingAppointments.map((appointment) => (
+                  <Link
+                    key={appointment.id}
+                    href={`/patients/${appointment.patient.id}`}
+                    className="block rounded-[24px] bg-slate-50 px-5 py-4 transition-colors hover:bg-cyan-50/70"
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-base font-semibold text-slate-900">
+                          {appointment.patient.name}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {formatDateTime(appointment.date)}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 shadow-sm">
+                        {appointment.status}
+                      </span>
+                    </div>
+                  </Link>
+                ))
+              )}
             </div>
           </article>
         </section>

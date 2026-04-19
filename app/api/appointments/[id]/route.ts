@@ -1,4 +1,6 @@
+import { getCurrentAppUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
+import { getCenterScopeId, isPatientPortalUser } from "@/lib/user-access";
 import { NextResponse } from "next/server";
 
 export async function PATCH(
@@ -6,8 +8,24 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const currentUser = await getCurrentAppUser();
+
+    if (!currentUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (isPatientPortalUser(currentUser)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const centerScopeId = getCenterScopeId(currentUser);
     const resolvedParams = await params;
+    const appointmentId = Number(resolvedParams.id);
     const body = await req.json();
+
+    if (!Number.isInteger(appointmentId) || appointmentId < 1) {
+      return NextResponse.json({ error: "Invalid appointment ID" }, { status: 400 });
+    }
 
     if (!body.status) {
       return NextResponse.json(
@@ -16,13 +34,27 @@ export async function PATCH(
       );
     }
 
+    if (centerScopeId) {
+      const appointment = await prisma.appointment.findFirst({
+        where: {
+          id: appointmentId,
+          centerId: centerScopeId,
+        },
+        select: { id: true },
+      });
+
+      if (!appointment) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+    }
+
     const appointment = await prisma.appointment.update({
-      where: { id: Number(resolvedParams.id) },
+      where: { id: appointmentId },
       data: { status: body.status },
     });
 
     return NextResponse.json(appointment);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to update appointment" }, { status: 500 });
   }
 }

@@ -11,6 +11,19 @@ function cleanText(value: unknown) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+async function confirmSupabaseAuthUser(
+  tx: Prisma.TransactionClient,
+  supabaseId: string
+) {
+  await tx.$executeRaw`
+    UPDATE auth.users
+    SET
+      email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
+      updated_at = NOW()
+    WHERE id = CAST(${supabaseId} AS uuid)
+  `;
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -54,10 +67,13 @@ export async function POST(req: Request) {
       where: {
         OR: [{ email }, { supabaseId }],
       },
-      select: { id: true },
+      select: {
+        id: true,
+        patientId: true,
+      },
     });
 
-    if (existingUser) {
+    if (existingUser?.patientId) {
       return NextResponse.json(
         { error: "This account is already linked to a patient profile." },
         { status: 409 }
@@ -95,16 +111,34 @@ export async function POST(req: Request) {
         },
       });
 
-      await tx.user.create({
-        data: {
-          name,
-          email,
-          supabaseId,
-          role: "PATIENT",
-          centerId,
-          patientId: createdPatient.id,
-        },
-      });
+      if (existingUser) {
+        await tx.user.update({
+          where: { id: existingUser.id },
+          data: {
+            name,
+            email,
+            phone,
+            supabaseId,
+            role: "PATIENT",
+            centerId,
+            patientId: createdPatient.id,
+          },
+        });
+      } else {
+        await tx.user.create({
+          data: {
+            name,
+            email,
+            phone,
+            supabaseId,
+            role: "PATIENT",
+            centerId,
+            patientId: createdPatient.id,
+          },
+        });
+      }
+
+      await confirmSupabaseAuthUser(tx, supabaseId);
 
       return createdPatient;
     });

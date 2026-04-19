@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentAppUser } from "@/lib/current-user";
 import { PatientProfilePage } from "@/components/patient-profile-page";
+import { getCenterScopeId, getUserPortalKind } from "@/lib/user-access";
 
 export default async function PatientProfileRoute({
   params,
@@ -20,8 +21,14 @@ export default async function PatientProfileRoute({
     redirect(`/patients/${currentUser.patientId}`);
   }
 
-  const patient = await prisma.patient.findUnique({
-    where: { id: patientId },
+  const portalKind = getUserPortalKind(currentUser);
+  const centerScopeId = getCenterScopeId(currentUser);
+
+  const patient = await prisma.patient.findFirst({
+    where: {
+      id: patientId,
+      ...(centerScopeId ? { centerId: centerScopeId } : {}),
+    },
     include: {
       center: {
         include: {
@@ -64,10 +71,15 @@ export default async function PatientProfileRoute({
   });
 
   if (!patient) {
+    if (centerScopeId) {
+      redirect("/patients");
+    }
+
     notFound();
   }
 
   const centers = await prisma.center.findMany({
+    where: centerScopeId ? { id: centerScopeId } : undefined,
     include: {
       city: true,
     },
@@ -100,6 +112,7 @@ export default async function PatientProfileRoute({
         })),
       }}
       centers={centers}
+      viewerPortalKind={portalKind === "center" ? "center" : portalKind === "operations" ? "operations" : "patient"}
     />
   );
 }

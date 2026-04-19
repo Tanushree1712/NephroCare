@@ -15,6 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import type { CurrentAppUser } from "@/lib/current-user";
+import { getUserPortalKind } from "@/lib/user-access";
 
 type AppShellProps = {
   children: ReactNode;
@@ -31,11 +32,19 @@ function isActiveRoute(pathname: string, href: string) {
 
 export function AppShell({ children, user }: AppShellProps) {
   const pathname = usePathname();
-  const isAuthRoute = pathname === "/login" || pathname === "/register";
+  const isAuthRoute =
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/forgot-password" ||
+    pathname === "/update-password";
 
   if (!user || isAuthRoute) {
     return <>{children}</>;
   }
+
+  const portalKind = getUserPortalKind(user);
+  const isPatientPortal = portalKind === "patient";
+  const isCenterPortal = portalKind === "center";
 
   const patientNavigation = [
     { href: "/", label: "Home", compactLabel: "Home", icon: House },
@@ -66,13 +75,42 @@ export function AppShell({ children, user }: AppShellProps) {
     },
   ];
 
-  const navigation = user.patientId ? patientNavigation : adminNavigation;
+  const navigation = isPatientPortal ? patientNavigation : adminNavigation;
   const initials = user.name
     .split(" ")
     .map((name) => name[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  const shellTitle = isPatientPortal
+    ? "Patient App"
+    : isCenterPortal
+      ? "Center Desk"
+      : "Operations";
+  const shellEyebrow = isPatientPortal ? "NephroCare" : "NephroCare+";
+  const headerEyebrow = isPatientPortal
+    ? "Patient portal"
+    : isCenterPortal
+      ? "Center operations"
+      : "Operations";
+  const headerTitle = isPatientPortal
+    ? "Your care hub"
+    : isCenterPortal
+      ? "Reception dashboard"
+      : "Clinical workspace";
+  const primaryActionHref = isPatientPortal ? "/book" : "/appointments";
+  const primaryActionLabel = isPatientPortal
+    ? "Book a session"
+    : isCenterPortal
+      ? "Open center bookings"
+      : "Open schedule";
+  const signOutRedirect = isCenterPortal ? "/center-login" : "/login";
+  const promoCopy = isPatientPortal
+    ? "Keep your dialysis details, bookings, and center preferences in one calm, patient-friendly space."
+    : isCenterPortal
+      ? "Review registrations, bookings, and patient activity for your assigned center without the noise of the wider network."
+      : "Stay on top of registrations, appointments, and clinical coordination across the NephroCare network.";
 
   return (
     <div className="relative min-h-screen">
@@ -85,9 +123,9 @@ export function AppShell({ children, user }: AppShellProps) {
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                  NephroCare
+                  {shellEyebrow}
                 </p>
-                <h1 className="font-display text-2xl text-slate-900">Patient App</h1>
+                <h1 className="font-display text-2xl text-slate-900">{shellTitle}</h1>
               </div>
             </Link>
 
@@ -135,6 +173,7 @@ export function AppShell({ children, user }: AppShellProps) {
               </div>
 
               <form action="/auth/signout" method="post" className="mt-5">
+                <input type="hidden" name="redirectTo" value={signOutRedirect} />
                 <button
                   type="submit"
                   className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
@@ -154,8 +193,7 @@ export function AppShell({ children, user }: AppShellProps) {
               Care that feels personal.
             </h2>
             <p className="mt-3 text-sm leading-6 text-cyan-50/92">
-              Keep your dialysis details, bookings, and center preferences in one calm,
-              patient-friendly space.
+              {promoCopy}
             </p>
           </div>
         </aside>
@@ -169,21 +207,21 @@ export function AppShell({ children, user }: AppShellProps) {
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                    {user.patientId ? "Patient portal" : "Operations"}
+                    {headerEyebrow}
                   </p>
                   <h2 className="font-display text-[1.9rem] leading-none text-slate-900">
-                    {user.patientId ? "Your care hub" : "Clinical workspace"}
+                    {headerTitle}
                   </h2>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
                 <Link
-                  href={user.patientId ? "/book" : "/appointments"}
+                  href={primaryActionHref}
                   className="inline-flex items-center gap-2 rounded-[18px] bg-[linear-gradient(135deg,#17bfd3_0%,#0e9a9d_100%)] px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(20,190,211,0.25)] transition-transform hover:-translate-y-0.5"
                 >
                   <Sparkles className="h-4 w-4" />
-                  {user.patientId ? "Book a session" : "Open schedule"}
+                  {primaryActionLabel}
                 </Link>
                 <div className="hidden rounded-[18px] border border-slate-200/80 bg-white/80 px-4 py-3 text-sm text-slate-600 sm:block">
                   Signed in as <span className="font-semibold text-slate-900">{user.email}</span>

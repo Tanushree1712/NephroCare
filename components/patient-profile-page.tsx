@@ -86,6 +86,7 @@ type PatientProfileData = {
 type PatientProfilePageProps = {
   patient: PatientProfileData;
   centers: CenterOption[];
+  viewerPortalKind: "patient" | "center" | "operations";
 };
 
 function formatDate(value: string) {
@@ -106,7 +107,11 @@ function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
-export function PatientProfilePage({ patient, centers }: PatientProfilePageProps) {
+export function PatientProfilePage({
+  patient,
+  centers,
+  viewerPortalKind,
+}: PatientProfilePageProps) {
   const router = useRouter();
   const profileRef = useRef<HTMLDivElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -126,6 +131,9 @@ export function PatientProfilePage({ patient, centers }: PatientProfilePageProps
   const nextAppointment = patient.appointments.find(
     (appointment) => appointment.status === "scheduled"
   );
+  const primaryCtaHref = viewerPortalKind === "patient" ? "/book" : "/appointments";
+  const primaryCtaLabel =
+    viewerPortalKind === "patient" ? "Book next session" : "Open bookings";
 
   async function generatePDF() {
     if (!profileRef.current) {
@@ -222,10 +230,10 @@ export function PatientProfilePage({ patient, centers }: PatientProfilePageProps
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                href="/book"
-                className="inline-flex items-center gap-2 rounded-[18px] bg-white px-5 py-3 text-sm font-semibold text-cyan-700 transition-transform hover:-translate-y-0.5"
+                href={primaryCtaHref}
+                className="inline-flex items-center gap-2 rounded-[18px] bg-white px-5 py-3 text-sm font-semibold !text-black transition-transform hover:-translate-y-0.5"
               >
-                Book next session
+                {primaryCtaLabel}
               </Link>
               <button
                 onClick={() => setIsEditing(true)}

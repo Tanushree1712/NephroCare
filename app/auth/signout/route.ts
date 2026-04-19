@@ -3,6 +3,13 @@ import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
+  const formData = await request.formData().catch(() => null);
+  const redirectToValue = formData?.get("redirectTo");
+  const redirectTo =
+    typeof redirectToValue === "string" && redirectToValue.startsWith("/")
+      ? redirectToValue
+      : "/login";
+
   const supabase = await createClient();
 
   // Check if a user is logged in
@@ -14,7 +21,7 @@ export async function POST(request: Request) {
     await supabase.auth.signOut();
   }
 
-  const response = NextResponse.redirect(new URL("/login", request.url), {
+  const response = NextResponse.redirect(new URL(redirectTo, request.url), {
     status: 302,
   });
 

@@ -35,6 +35,13 @@ type Patient = {
   center: Center;
 };
 
+type WorkspaceUser = {
+  patientId?: number | null;
+  centerId?: number | null;
+  role?: string | null;
+  center?: Center | null;
+};
+
 type PatientFormState = {
   name: string;
   age: string;
@@ -63,6 +70,7 @@ const initialForm: PatientFormState = {
 export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [centers, setCenters] = useState<Center[]>([]);
+  const [viewer, setViewer] = useState<WorkspaceUser | null>(null);
   const [form, setForm] = useState<PatientFormState>(initialForm);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -74,19 +82,21 @@ export default function PatientsPage() {
 
     void (async () => {
       try {
-        const [patientsResponse, centersResponse] = await Promise.all([
+        const [patientsResponse, centersResponse, userResponse] = await Promise.all([
           fetch("/api/patients"),
           fetch("/api/centers"),
+          fetch("/api/users/me"),
         ]);
 
-        if (!patientsResponse.ok || !centersResponse.ok) {
+        if (!patientsResponse.ok || !centersResponse.ok || !userResponse.ok) {
           throw new Error("Failed to load patient data.");
         }
 
-        const [patientsData, centersData] = (await Promise.all([
+        const [patientsData, centersData, userData] = (await Promise.all([
           patientsResponse.json(),
           centersResponse.json(),
-        ])) as [Patient[], Center[]];
+          userResponse.json(),
+        ])) as [Patient[], Center[], WorkspaceUser];
 
         if (!active) {
           return;
@@ -94,6 +104,14 @@ export default function PatientsPage() {
 
         setPatients(Array.isArray(patientsData) ? patientsData : []);
         setCenters(Array.isArray(centersData) ? centersData : []);
+        setViewer(userData);
+
+        if (userData.centerId && !userData.patientId) {
+          setForm((currentForm) => ({
+            ...currentForm,
+            centerId: currentForm.centerId || String(userData.centerId),
+          }));
+        }
       } catch {
         if (active) {
           setError("We could not load patients right now.");
@@ -172,6 +190,8 @@ export default function PatientsPage() {
       .includes(query);
   });
 
+  const centerScoped = Boolean(viewer?.centerId && !viewer?.patientId);
+  const assignedCenterName = viewer?.center?.name ?? "your center";
   const centerCount = new Set(patients.map((patient) => patient.centerId)).size;
 
   return (
@@ -180,20 +200,27 @@ export default function PatientsPage() {
         <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-100/74">
-              Admin workspace
+              {centerScoped ? "Reception workspace" : "Admin workspace"}
             </p>
             <h1 className="mt-4 font-display text-[2.8rem] leading-[0.95]">
-              Patient registry and onboarding.
+              {centerScoped
+                ? `${assignedCenterName} registrations.`
+                : "Patient registry and onboarding."}
             </h1>
             <p className="mt-5 max-w-2xl text-sm leading-7 text-cyan-50/92">
-              Add new patients, review location and diagnosis at a glance, and jump directly
-              into each patient profile for ongoing coordination.
+              {centerScoped
+                ? "Add new patients, review registration details at a glance, and jump directly into the records assigned to your center."
+                : "Add new patients, review location and diagnosis at a glance, and jump directly into each patient profile for ongoing coordination."}
             </p>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
               {[
                 { label: "Registered patients", value: patients.length, icon: Users },
-                { label: "Active centers", value: centerCount, icon: Building2 },
+                {
+                  label: centerScoped ? "Visible centers" : "Active centers",
+                  value: centerScoped ? 1 : centerCount,
+                  icon: Building2,
+                },
                 { label: "New intakes", value: filteredPatients.length, icon: HeartPulse },
               ].map((item) => {
                 const Icon = item.icon;
@@ -220,7 +247,7 @@ export default function PatientsPage() {
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/72">
-                  Quick create
+                  {centerScoped ? "Center intake" : "Quick create"}
                 </p>
                 <h2 className="mt-1 font-display text-[2rem] leading-none text-white">
                   Add patient
@@ -307,6 +334,7 @@ export default function PatientsPage() {
                 <select
                   className={inputClasses}
                   value={form.centerId}
+                  disabled={centerScoped}
                   onChange={(event) =>
                     setForm((currentForm) => ({ ...currentForm, centerId: event.target.value }))
                   }
@@ -318,6 +346,11 @@ export default function PatientsPage() {
                     </option>
                   ))}
                 </select>
+                {centerScoped ? (
+                  <p className="mt-2 text-xs leading-5 text-cyan-50/84">
+                    Patients created here will stay linked to {assignedCenterName}.
+                  </p>
+                ) : null}
               </div>
 
               <button

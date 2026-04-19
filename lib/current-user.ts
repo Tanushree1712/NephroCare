@@ -4,6 +4,7 @@ import {
   isDevLoginEnabled,
   readDevSessionValue,
 } from "@/lib/dev-session";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
 
@@ -34,6 +35,15 @@ function mapCurrentAppUser(localUser: {
   };
 }
 
+export async function getCurrentAuthUser(): Promise<SupabaseUser | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return user;
+}
+
 export async function getCurrentAppUser(): Promise<CurrentAppUser | null> {
   if (isDevLoginEnabled()) {
     const cookieStore = await cookies();
@@ -52,10 +62,7 @@ export async function getCurrentAppUser(): Promise<CurrentAppUser | null> {
     }
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentAuthUser();
 
   if (!user) {
     return null;

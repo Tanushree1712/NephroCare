@@ -96,6 +96,7 @@ export function PatientProfileEditor({
   const [form, setForm] = useState<EditorFormState>(() => getInitialFormState(patient));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const centerLocked = centers.length <= 1;
 
   useEffect(() => {
     if (!open) {
@@ -267,6 +268,7 @@ export function PatientProfileEditor({
                 <select
                   className={inputClasses}
                   value={form.centerId}
+                  disabled={centerLocked}
                   onChange={(event) =>
                     setForm((currentForm) => ({ ...currentForm, centerId: event.target.value }))
                   }
@@ -277,6 +279,11 @@ export function PatientProfileEditor({
                     </option>
                   ))}
                 </select>
+                {centerLocked ? (
+                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                    Center access is locked to the assigned center for this workspace.
+                  </p>
+                ) : null}
               </div>
             </div>
 

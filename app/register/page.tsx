@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Activity, ArrowLeft, ArrowRight, MapPin, ShieldCheck } from "lucide-react";
+import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 
 type RegisterFormState = {
   name: string;
@@ -42,6 +43,13 @@ type RegisterResponse = {
   } | null;
 };
 
+type ResolvedAuthRegistration = {
+  user: User;
+  session: Session | null;
+  recoveredExistingAccount: boolean;
+  reusedCurrentSession: boolean;
+};
+
 const inputClasses =
   "w-full rounded-[20px] border border-slate-200/80 bg-slate-50/90 px-4 py-3.5 text-sm font-medium text-slate-800 outline-none transition focus:border-cyan-400 focus:bg-white focus:ring-4 focus:ring-cyan-100";
 
@@ -70,6 +78,143 @@ const initialForm: RegisterFormState = {
   emergencyContactPhone: "",
 };
 
+async function resolveAuthRegistration(
+  supabase: SupabaseClient,
+  form: RegisterFormState
+): Promise<
+  | { data: ResolvedAuthRegistration; error: null }
+  | { data: null; error: string }
+> {
+  const email = form.email.trim().toLowerCase();
+  const password = form.password;
+
+  const {
+    data: { user: currentUser },
+  } = await supabase.auth.getUser();
+
+  if (currentUser?.id) {
+    const currentEmail = currentUser.email?.trim().toLowerCase();
+
+    if (currentEmail && currentEmail !== email) {
+      return {
+        data: null,
+        error:
+          "You're already signed in with a different email. Sign out first or use that same email to finish registration.",
+      };
+    }
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    return {
+      data: {
+        user: currentUser,
+        session,
+        recoveredExistingAccount: false,
+        reusedCurrentSession: true,
+      },
+      error: null,
+    };
+  }
+
+  const signUpResult = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: form.name.trim(),
+        phone: form.phone.trim(),
+        role: "PATIENT",
+      },
+    },
+  });
+
+  if (!signUpResult.error && signUpResult.data.user?.id) {
+    return {
+      data: {
+        user: signUpResult.data.user,
+        session: signUpResult.data.session,
+        recoveredExistingAccount: false,
+        reusedCurrentSession: false,
+      },
+      error: null,
+    };
+  }
+
+  const authErrorMessage = signUpResult.error?.message ?? "";
+  const canRecoverExistingAccount =
+    /already registered|already been registered|user already registered/i.test(
+      authErrorMessage
+    );
+
+  if (!canRecoverExistingAccount) {
+    return {
+      data: null,
+      error:
+        authErrorMessage || "We could not create your secure account. Please try again.",
+    };
+  }
+
+  const signInResult = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (signInResult.error || !signInResult.data.user?.id) {
+    return {
+      data: null,
+      error:
+        "This email is already registered. Sign in with the same password or reset it, then try again.",
+    };
+  }
+
+  return {
+    data: {
+      user: signInResult.data.user,
+      session: signInResult.data.session,
+      recoveredExistingAccount: true,
+      reusedCurrentSession: false,
+    },
+    error: null,
+  };
+}
+
+async function syncAuthProfileMetadata(
+  supabase: SupabaseClient,
+  registration: ResolvedAuthRegistration,
+  form: RegisterFormState
+) {
+  if (!registration.session) {
+    return;
+  }
+
+  await supabase.auth.updateUser({
+    data: {
+      full_name: form.name.trim(),
+      phone: form.phone.trim(),
+      role: "PATIENT",
+    },
+  });
+}
+
+async function completePostRegistrationSignIn(
+  supabase: SupabaseClient,
+  registration: ResolvedAuthRegistration,
+  form: RegisterFormState
+) {
+  if (registration.session || registration.reusedCurrentSession) {
+    return true;
+  }
+
+  const signInResult = await supabase.auth.signInWithPassword({
+    email: form.email.trim().toLowerCase(),
+    password: form.password,
+  });
+
+  return !signInResult.error && Boolean(signInResult.data.session);
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const [centers, setCenters] = useState<CenterOption[]>([]);
@@ -78,6 +223,7 @@ export default function RegisterPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [hasActiveSession, setHasActiveSession] = useState(false);
   const [manualCenterSelection, setManualCenterSelection] = useState(false);
 
   useEffect(() => {
@@ -106,6 +252,37 @@ export default function RegisterPage() {
 
     return () => {
       isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const supabase = createClient();
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (active) {
+          setHasActiveSession(Boolean(data.session));
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setHasActiveSession(false);
+        }
+      });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (active) {
+        setHasActiveSession(Boolean(session));
+      }
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -145,24 +322,22 @@ export default function RegisterPage() {
     setSuccessMessage("");
 
     const supabase = createClient();
-    const { data, error: authError } = await supabase.auth.signUp({
-      email: form.email.trim(),
-      password: form.password,
-      options: {
-        data: {
-          full_name: form.name.trim(),
-          role: "PATIENT",
-        },
-      },
-    });
+    const authResult = await resolveAuthRegistration(supabase, form);
 
-    if (authError) {
+    if (authResult.error) {
       setSubmitting(false);
-      setError(authError.message);
+      setError(authResult.error);
       return;
     }
 
-    const supabaseId = data.user?.id;
+    if (!authResult.data) {
+      setSubmitting(false);
+      setError("We could not create your secure account. Please try again.");
+      return;
+    }
+
+    const authData = authResult.data;
+    const supabaseId = authData.user.id;
 
     if (!supabaseId) {
       setSubmitting(false);
@@ -171,6 +346,8 @@ export default function RegisterPage() {
     }
 
     try {
+      await syncAuthProfileMetadata(supabase, authData, form);
+
       const response = await fetch("/api/register", {
         method: "POST",
         headers: {
@@ -186,7 +363,9 @@ export default function RegisterPage() {
       const payload = (await response.json()) as RegisterResponse & { error?: string };
 
       if (!response.ok) {
-        await supabase.auth.signOut();
+        if (authData.session && !authData.reusedCurrentSession) {
+          await supabase.auth.signOut();
+        }
         setError(payload.error ?? "We could not finish your patient registration.");
         setSubmitting(false);
         return;
@@ -198,15 +377,29 @@ export default function RegisterPage() {
         payload.createdAt
       );
 
+      const signedInAfterRegistration = await completePostRegistrationSignIn(
+        supabase,
+        authData,
+        form
+      );
+
       setSuccessMessage(`Profile created. Your patient ID is ${patientCode}.`);
 
       window.setTimeout(() => {
-        router.push(data.session ? "/" : "/login?registered=1");
+        router.push(
+          authData.session || signedInAfterRegistration ? "/" : "/login?registered=1"
+        );
         router.refresh();
       }, 1200);
     } catch {
-      await supabase.auth.signOut();
-      setError("Your account was created, but the patient profile could not be saved.");
+      if (authData.session && !authData.reusedCurrentSession) {
+        await supabase.auth.signOut();
+      }
+      setError(
+        authData.recoveredExistingAccount
+          ? "We found your Supabase account, but the patient profile could not be linked yet."
+          : "Your account was created, but the patient profile could not be saved."
+      );
       setSubmitting(false);
       return;
     }
@@ -344,12 +537,21 @@ export default function RegisterPage() {
                     </label>
                     <input
                       type="password"
-                      required
-                      placeholder="Create a strong password"
+                      required={!hasActiveSession}
+                      placeholder={
+                        hasActiveSession
+                          ? "Already signed in. Only needed if you want to re-authenticate."
+                          : "Create a strong password"
+                      }
                       className={inputClasses}
                       value={form.password}
                       onChange={(event) => updateField("password", event.target.value)}
                     />
+                    {hasActiveSession ? (
+                      <p className="mt-2 text-xs leading-5 text-slate-500">
+                        Your active Supabase session will be reused for registration.
+                      </p>
+                    ) : null}
                   </div>
                   <div>
                     <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">

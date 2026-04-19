@@ -7,6 +7,8 @@ type DevSessionPayload = {
 
 export const DEV_LOGIN_EMAIL = "demo.patient@nephrocare.plus";
 export const DEV_LOGIN_PASSWORD = "DemoPass!2026";
+export const DEV_RECEPTION_LOGIN_EMAIL = "demo.reception@nephrocare.plus";
+export const DEV_RECEPTION_LOGIN_PASSWORD = "CenterDesk!2026";
 export const DEV_SESSION_COOKIE = "nephrocare-dev-session";
 
 const DEV_SESSION_SECRET =
