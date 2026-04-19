@@ -48,6 +48,7 @@ export async function GET(
         appointments: {
           include: {
             center: true,
+            machine: true,
           },
           orderBy: { date: "desc" },
         },

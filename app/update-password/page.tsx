@@ -161,16 +161,16 @@ export default function UpdatePasswordPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="w-full max-w-[1040px] rounded-[40px] border border-white/80 bg-white/60 p-4 shadow-[0_24px_80px_rgba(17,124,136,0.12)] backdrop-blur-2xl md:p-6">
+      <div className="w-full max-w-[1040px] rounded-[32px] border border-white/80 bg-white/60 p-3 shadow-[0_24px_80px_rgba(17,124,136,0.12)] backdrop-blur-2xl sm:rounded-[40px] sm:p-4 md:p-6">
         <div className="grid gap-4 md:grid-cols-[0.92fr_1.08fr]">
-          <section className="rounded-[32px] bg-[linear-gradient(160deg,#0f98a2_0%,#17bfd3_54%,#95eef5_100%)] p-8 text-white">
+          <section className="rounded-[28px] bg-[linear-gradient(160deg,#0f98a2_0%,#17bfd3_54%,#95eef5_100%)] p-6 text-white sm:rounded-[32px] sm:p-8">
             <div className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-white/18">
               <Activity className="h-7 w-7" />
             </div>
             <p className="mt-8 text-xs font-semibold uppercase tracking-[0.32em] text-cyan-50/82">
               Choose a new password
             </p>
-            <h1 className="mt-4 font-display text-[2.8rem] leading-[0.95]">
+            <h1 className="mt-4 font-display text-[2.2rem] leading-[0.95] sm:text-[2.8rem]">
               Keep your account secure and easy to access.
             </h1>
             <p className="mt-5 max-w-sm text-sm leading-7 text-cyan-50/92">
@@ -182,7 +182,7 @@ export default function UpdatePasswordPage() {
               {[
                 "Use at least 8 characters",
                 "Choose something you have not reused elsewhere",
-                "After saving, you’ll be sent back to the login page",
+                "After saving, you'll be sent back to the login page",
               ].map((item) => (
                 <div
                   key={item}
@@ -194,7 +194,7 @@ export default function UpdatePasswordPage() {
             </div>
           </section>
 
-          <section className="rounded-[32px] bg-white/92 p-8 md:p-10">
+          <section className="rounded-[28px] bg-white/92 p-6 sm:rounded-[32px] sm:p-8 md:p-10">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-cyan-50 shadow-inner">
               {success ? (
                 <CheckCircle2 className="h-8 w-8 text-emerald-600" />
@@ -207,7 +207,7 @@ export default function UpdatePasswordPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
                 Reset password
               </p>
-              <h2 className="mt-3 font-display text-[2.2rem] leading-none text-slate-900">
+              <h2 className="mt-3 font-display text-[1.95rem] leading-none text-slate-900 sm:text-[2.2rem]">
                 Set a new password
               </h2>
               <p className="mt-3 text-sm leading-6 text-slate-500">

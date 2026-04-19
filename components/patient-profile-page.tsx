@@ -21,6 +21,7 @@ import {
   UploadCloud,
   UserRound,
 } from "lucide-react";
+import { getAppointmentSlotLabel } from "@/lib/appointment-slots";
 import { formatPatientId } from "@/lib/patient-utils";
 import { PatientProfileEditor } from "@/components/patient-profile-editor";
 import type { CenterOption } from "@/lib/patient-utils";
@@ -64,6 +65,10 @@ type PatientProfileData = {
     id: number;
     date: string;
     status: string;
+    slot: "MORNING" | "AFTERNOON" | "EVENING";
+    machine?: {
+      code: string;
+    } | null;
     center: {
       name: string;
     };
@@ -195,18 +200,18 @@ export function PatientProfilePage({
         Back
       </button>
 
-      <section className="overflow-hidden rounded-[34px] bg-[linear-gradient(135deg,#0b3d46_0%,#0f98a2_48%,#17bfd3_100%)] px-6 py-7 text-white shadow-[0_24px_80px_rgba(10,120,132,0.22)] md:px-8 md:py-8">
+      <section className="overflow-hidden rounded-[30px] bg-[linear-gradient(135deg,#0b3d46_0%,#0f98a2_48%,#17bfd3_100%)] px-5 py-6 text-white shadow-[0_24px_80px_rgba(10,120,132,0.22)] sm:rounded-[34px] sm:px-6 sm:py-7 md:px-8 md:py-8">
         <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
           <div>
-            <div className="flex items-center gap-4">
-              <div className="flex h-20 w-20 items-center justify-center rounded-[26px] bg-white/16 text-2xl font-bold">
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-white/16 text-xl font-bold sm:h-20 sm:w-20 sm:rounded-[26px] sm:text-2xl">
                 {initials}
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-100/72">
                   Patient profile
                 </p>
-                <h1 className="mt-2 font-display text-[2.8rem] leading-[0.95]">
+                <h1 className="mt-2 font-display text-[2.2rem] leading-[0.95] sm:text-[2.8rem]">
                   {patient.name}
                 </h1>
                 <p className="mt-2 text-sm text-cyan-50/88">Patient ID {patientCode}</p>
@@ -231,19 +236,19 @@ export function PatientProfilePage({
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href={primaryCtaHref}
-                className="inline-flex items-center gap-2 rounded-[18px] bg-white px-5 py-3 text-sm font-semibold !text-black transition-transform hover:-translate-y-0.5"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[18px] bg-white px-5 py-3 text-sm font-semibold !text-black transition-transform hover:-translate-y-0.5 sm:w-auto"
               >
                 {primaryCtaLabel}
               </Link>
               <button
                 onClick={() => setIsEditing(true)}
-                className="inline-flex items-center gap-2 rounded-[18px] border border-white/18 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/16"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[18px] border border-white/18 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/16 sm:w-auto"
               >
                 Edit profile
               </button>
               <button
                 onClick={generatePDF}
-                className="inline-flex items-center gap-2 rounded-[18px] border border-white/18 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/16"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[18px] border border-white/18 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/16 sm:w-auto"
               >
                 <Printer className="h-4 w-4" />
                 Print summary
@@ -251,7 +256,7 @@ export function PatientProfilePage({
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-white/14 bg-white/10 p-5 backdrop-blur">
+          <div className="rounded-[26px] border border-white/14 bg-white/10 p-4 backdrop-blur sm:rounded-[28px] sm:p-5">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-white/16">
                 <CalendarDays className="h-6 w-6" />
@@ -260,7 +265,7 @@ export function PatientProfilePage({
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/74">
                   Next session
                 </p>
-                <p className="mt-1 text-2xl font-semibold text-white">
+                <p className="mt-1 text-xl font-semibold text-white sm:text-2xl">
                   {nextAppointment ? formatDateTime(nextAppointment.date) : "Not booked yet"}
                 </p>
               </div>
@@ -284,7 +289,13 @@ export function PatientProfilePage({
                   {patient.preferredSlot || "Morning"}
                 </p>
                 <p className="mt-1 text-sm text-cyan-50/84">
-                  {patient.dialysisType || "Dialysis type not recorded"}
+                  {nextAppointment
+                    ? `${getAppointmentSlotLabel(nextAppointment.slot)}${
+                        nextAppointment.machine?.code
+                          ? ` | ${nextAppointment.machine.code}`
+                          : ""
+                      }`
+                    : patient.dialysisType || "Dialysis type not recorded"}
                 </p>
               </div>
             </div>
@@ -293,7 +304,7 @@ export function PatientProfilePage({
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <article className="rounded-[32px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl md:p-7">
+        <article className="rounded-[30px] border border-white/80 bg-white/82 p-5 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl sm:rounded-[32px] sm:p-6 md:p-7">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-cyan-50 text-cyan-700">
               <UserRound className="h-6 w-6" />
@@ -302,7 +313,7 @@ export function PatientProfilePage({
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                 Personal details
               </p>
-              <h2 className="mt-1 font-display text-[2rem] leading-none text-slate-900">
+              <h2 className="mt-1 font-display text-[1.75rem] leading-none text-slate-900 sm:text-[2rem]">
                 Contact and center
               </h2>
             </div>
@@ -351,7 +362,7 @@ export function PatientProfilePage({
           </div>
         </article>
 
-        <article className="rounded-[32px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl md:p-7">
+        <article className="rounded-[30px] border border-white/80 bg-white/82 p-5 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl sm:rounded-[32px] sm:p-6 md:p-7">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-cyan-50 text-cyan-700">
               <HeartPulse className="h-6 w-6" />
@@ -360,7 +371,7 @@ export function PatientProfilePage({
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                 Care plan
               </p>
-              <h2 className="mt-1 font-display text-[2rem] leading-none text-slate-900">
+              <h2 className="mt-1 font-display text-[1.75rem] leading-none text-slate-900 sm:text-[2rem]">
                 Dialysis essentials
               </h2>
             </div>
@@ -414,7 +425,7 @@ export function PatientProfilePage({
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <article className="rounded-[32px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl md:p-7">
+        <article className="rounded-[30px] border border-white/80 bg-white/82 p-5 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl sm:rounded-[32px] sm:p-6 md:p-7">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-cyan-50 text-cyan-700">
               <FileText className="h-6 w-6" />
@@ -423,7 +434,7 @@ export function PatientProfilePage({
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                 Clinical history
               </p>
-              <h2 className="mt-1 font-display text-[2rem] leading-none text-slate-900">
+              <h2 className="mt-1 font-display text-[1.75rem] leading-none text-slate-900 sm:text-[2rem]">
                 Medical notes
               </h2>
             </div>
@@ -466,7 +477,7 @@ export function PatientProfilePage({
           </div>
         </article>
 
-        <article className="rounded-[32px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl md:p-7">
+        <article className="rounded-[30px] border border-white/80 bg-white/82 p-5 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl sm:rounded-[32px] sm:p-6 md:p-7">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-cyan-50 text-cyan-700">
               <UploadCloud className="h-6 w-6" />
@@ -475,7 +486,7 @@ export function PatientProfilePage({
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                 Documents
               </p>
-              <h2 className="mt-1 font-display text-[2rem] leading-none text-slate-900">
+              <h2 className="mt-1 font-display text-[1.75rem] leading-none text-slate-900 sm:text-[2rem]">
                 Medical artifacts
               </h2>
             </div>
@@ -509,7 +520,7 @@ export function PatientProfilePage({
                   href={file.fileUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center justify-between rounded-[22px] bg-slate-50 px-4 py-4 transition-colors hover:bg-cyan-50/70"
+                  className="flex flex-col gap-2 rounded-[22px] bg-slate-50 px-4 py-4 transition-colors hover:bg-cyan-50/70 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
                     <p className="text-sm font-semibold text-slate-900">Document #{file.id}</p>
@@ -525,7 +536,7 @@ export function PatientProfilePage({
         </article>
       </section>
 
-      <section className="rounded-[32px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl md:p-7">
+      <section className="rounded-[30px] border border-white/80 bg-white/82 p-5 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl sm:rounded-[32px] sm:p-6 md:p-7">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-cyan-50 text-cyan-700">
             <Clock3 className="h-6 w-6" />
@@ -534,7 +545,7 @@ export function PatientProfilePage({
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
               Treatment history
             </p>
-            <h2 className="mt-1 font-display text-[2rem] leading-none text-slate-900">
+            <h2 className="mt-1 font-display text-[1.75rem] leading-none text-slate-900 sm:text-[2rem]">
               Session timeline
             </h2>
           </div>

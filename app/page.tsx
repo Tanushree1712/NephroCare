@@ -12,7 +12,9 @@ import {
   Waves,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { getCenterOperationsSummary } from "@/lib/center-capacity";
 import { getCurrentAppUser, getCurrentAuthUser } from "@/lib/current-user";
+import { getIndiaDayRange } from "@/lib/appointment-slots";
 import { formatPatientId } from "@/lib/patient-utils";
 import { getCenterScopeId, getUserPortalKind } from "@/lib/user-access";
 
@@ -84,13 +86,13 @@ export default async function DashboardPage() {
 
     return (
       <div className="space-y-6">
-        <section className="overflow-hidden rounded-[34px] bg-[linear-gradient(135deg,#083f4a_0%,#0e8c98_45%,#20cadb_100%)] px-6 py-7 text-white shadow-[0_24px_80px_rgba(10,120,132,0.22)] md:px-8 md:py-8">
+        <section className="overflow-hidden rounded-[30px] bg-[linear-gradient(135deg,#083f4a_0%,#0e8c98_45%,#20cadb_100%)] px-5 py-6 text-white shadow-[0_24px_80px_rgba(10,120,132,0.22)] sm:rounded-[34px] sm:px-6 sm:py-7 md:px-8 md:py-8">
           <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/72">
                 Patient dashboard
               </p>
-              <h1 className="mt-4 font-display text-[2.8rem] leading-[0.95] md:text-[3.4rem]">
+              <h1 className="mt-4 font-display text-[2.2rem] leading-[0.95] sm:text-[2.8rem] md:text-[3.4rem]">
                 Hello, {patient.name.split(" ")[0]}.
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-cyan-50/92 md:text-base">
@@ -110,21 +112,21 @@ export default async function DashboardPage() {
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link
                   href="/book"
-                  className="inline-flex items-center gap-2 rounded-[18px] bg-white px-5 py-3 text-sm font-semibold !text-black transition-transform hover:-translate-y-0.5"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-[18px] bg-white px-5 py-3 text-sm font-semibold !text-black transition-transform hover:-translate-y-0.5 sm:w-auto"
                 >
                   Book a session
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
                   href={`/patients/${patient.id}`}
-                  className="inline-flex items-center gap-2 rounded-[18px] border border-white/18 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/16"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-[18px] border border-white/18 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/16 sm:w-auto"
                 >
                   Open my profile
                 </Link>
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-white/14 bg-white/10 p-5 backdrop-blur">
+            <div className="rounded-[26px] border border-white/14 bg-white/10 p-4 backdrop-blur sm:rounded-[28px] sm:p-5">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-white/16">
                   <CalendarClock className="h-6 w-6" />
@@ -133,7 +135,7 @@ export default async function DashboardPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/74">
                     Next dialysis session
                   </p>
-                  <p className="mt-1 text-2xl font-semibold text-white">
+                  <p className="mt-1 text-xl font-semibold text-white sm:text-2xl">
                     {nextAppointment ? formatDateTime(nextAppointment.date) : "Not booked yet"}
                   </p>
                 </div>
@@ -208,7 +210,7 @@ export default async function DashboardPage() {
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <article className="rounded-[32px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl md:p-7">
+          <article className="rounded-[30px] border border-white/80 bg-white/82 p-5 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl sm:rounded-[32px] sm:p-6 md:p-7">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-cyan-50 text-cyan-700">
                 <HeartPulse className="h-6 w-6" />
@@ -217,7 +219,7 @@ export default async function DashboardPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                   Care snapshot
                 </p>
-                <h2 className="mt-1 font-display text-[2rem] leading-none text-slate-900">
+                <h2 className="mt-1 font-display text-[1.75rem] leading-none text-slate-900 sm:text-[2rem]">
                   Dialysis overview
                 </h2>
               </div>
@@ -274,7 +276,7 @@ export default async function DashboardPage() {
             </div>
           </article>
 
-          <article className="rounded-[32px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl md:p-7">
+          <article className="rounded-[30px] border border-white/80 bg-white/82 p-5 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl sm:rounded-[32px] sm:p-6 md:p-7">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-cyan-50 text-cyan-700">
                 <MapPin className="h-6 w-6" />
@@ -283,7 +285,7 @@ export default async function DashboardPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                   Location and planning
                 </p>
-                <h2 className="mt-1 font-display text-[2rem] leading-none text-slate-900">
+                <h2 className="mt-1 font-display text-[1.75rem] leading-none text-slate-900 sm:text-[2rem]">
                   Center guidance
                 </h2>
               </div>
@@ -354,10 +356,7 @@ export default async function DashboardPage() {
 
   if (centerScopeId) {
     const now = new Date();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const { start: today, end: tomorrow } = getIndiaDayRange(now);
 
     const [
       center,
@@ -423,15 +422,20 @@ export default async function DashboardPage() {
       redirect("/center-login");
     }
 
+    const operations = await getCenterOperationsSummary(prisma, {
+      centerId: center.id,
+      referenceDate: now,
+    });
+
     return (
       <div className="space-y-6">
-        <section className="overflow-hidden rounded-[34px] bg-[linear-gradient(135deg,#083844_0%,#0f8797_44%,#21c7d9_100%)] px-6 py-7 text-white shadow-[0_24px_80px_rgba(10,120,132,0.22)] md:px-8 md:py-8">
+        <section className="overflow-hidden rounded-[30px] bg-[linear-gradient(135deg,#083844_0%,#0f8797_44%,#21c7d9_100%)] px-5 py-6 text-white shadow-[0_24px_80px_rgba(10,120,132,0.22)] sm:rounded-[34px] sm:px-6 sm:py-7 md:px-8 md:py-8">
           <div className="grid gap-8 lg:grid-cols-[1.12fr_0.88fr]">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/72">
                 Reception workspace
               </p>
-              <h1 className="mt-4 font-display text-[2.8rem] leading-[0.95] md:text-[3.3rem]">
+              <h1 className="mt-4 font-display text-[2.2rem] leading-[0.95] sm:text-[2.8rem] md:text-[3.3rem]">
                 {center.name}
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-cyan-50/92 md:text-base">
@@ -449,24 +453,24 @@ export default async function DashboardPage() {
                 </span>
               </div>
 
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <Link
-                    href="/patients"
-                    className="inline-flex items-center gap-2 rounded-[18px] bg-white px-5 py-3 text-sm font-semibold !text-black transition-transform hover:-translate-y-0.5"
-                  >
-                    Review registrations
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  href="/patients"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-[18px] bg-white px-5 py-3 text-sm font-semibold !text-black transition-transform hover:-translate-y-0.5 sm:w-auto"
+                >
+                  Review registrations
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
                 <Link
                   href="/appointments"
-                  className="inline-flex items-center gap-2 rounded-[18px] border border-white/18 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/16"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-[18px] border border-white/18 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/16 sm:w-auto"
                 >
                   Open bookings
                 </Link>
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-white/14 bg-white/10 p-5 backdrop-blur">
+            <div className="rounded-[26px] border border-white/14 bg-white/10 p-4 backdrop-blur sm:rounded-[28px] sm:p-5">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-white/16">
                   <CalendarClock className="h-6 w-6" />
@@ -475,7 +479,7 @@ export default async function DashboardPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/74">
                     Today at your center
                   </p>
-                  <p className="mt-1 text-2xl font-semibold text-white">
+                  <p className="mt-1 text-xl font-semibold text-white sm:text-2xl">
                     {appointmentsToday} booking{appointmentsToday === 1 ? "" : "s"} scheduled
                   </p>
                 </div>
@@ -517,18 +521,39 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-3">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[
-            { label: "Registered patients", value: totalPatients, icon: Building2 },
-            { label: "Bookings today", value: appointmentsToday, icon: CalendarClock },
-            { label: "Session logs", value: totalSessions, icon: Activity },
+            {
+              label: "Machines available",
+              value: operations.readyMachines,
+              detail: `${operations.totalMachines} total in the center`,
+              icon: Waves,
+            },
+            {
+              label: "Machines booked",
+              value: operations.bookedMachinesToday,
+              detail: `${operations.maintenanceMachines} in maintenance`,
+              icon: Activity,
+            },
+            {
+              label: "Appointments today",
+              value: appointmentsToday,
+              detail: "Scheduled bookings linked to this center",
+              icon: CalendarClock,
+            },
+            {
+              label: "Staff available",
+              value: operations.staffAvailableToday,
+              detail: `${operations.totalStaff} on the active roster`,
+              icon: Stethoscope,
+            },
           ].map((item) => {
             const Icon = item.icon;
 
             return (
               <article
                 key={item.label}
-                className="rounded-[28px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl"
+                className="rounded-[28px] border border-white/80 bg-white/82 p-5 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl sm:p-6"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-cyan-50 text-cyan-700">
                   <Icon className="h-6 w-6" />
@@ -536,14 +561,17 @@ export default async function DashboardPage() {
                 <p className="mt-5 text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                   {item.label}
                 </p>
-                <p className="mt-2 text-4xl font-semibold text-slate-900">{item.value}</p>
+                <p className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">
+                  {item.value}
+                </p>
+                <p className="mt-2 text-sm text-slate-500">{item.detail}</p>
               </article>
             );
           })}
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <article className="rounded-[32px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl md:p-7">
+          <article className="rounded-[30px] border border-white/80 bg-white/82 p-5 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl sm:rounded-[32px] sm:p-6 md:p-7">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-cyan-50 text-cyan-700">
                 <HeartPulse className="h-6 w-6" />
@@ -552,9 +580,13 @@ export default async function DashboardPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                   Registrations
                 </p>
-                <h2 className="mt-1 font-display text-[2rem] leading-none text-slate-900">
+                <h2 className="mt-1 font-display text-[1.75rem] leading-none text-slate-900 sm:text-[2rem]">
                   Recent patient sign-ups
                 </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  {totalPatients} registered patient{totalPatients === 1 ? "" : "s"} currently
+                  linked to {center.name}.
+                </p>
               </div>
             </div>
 
@@ -568,7 +600,7 @@ export default async function DashboardPage() {
                   <Link
                     key={patient.id}
                     href={`/patients/${patient.id}`}
-                    className="flex items-center justify-between rounded-[24px] bg-slate-50 px-5 py-4 transition-colors hover:bg-cyan-50/70"
+                    className="flex flex-col gap-3 rounded-[24px] bg-slate-50 px-5 py-4 transition-colors hover:bg-cyan-50/70 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
                       <p className="text-base font-semibold text-slate-900">{patient.name}</p>
@@ -581,7 +613,7 @@ export default async function DashboardPage() {
                         }).format(patient.createdAt)}
                       </p>
                     </div>
-                    <span className="text-sm font-semibold text-cyan-700">
+                    <span className="text-sm font-semibold text-cyan-700 sm:text-right">
                       {formatPatientId(patient.id, center.centerCode, patient.createdAt)}
                     </span>
                   </Link>
@@ -590,7 +622,7 @@ export default async function DashboardPage() {
             </div>
           </article>
 
-          <article className="rounded-[32px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl md:p-7">
+          <article className="rounded-[30px] border border-white/80 bg-white/82 p-5 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl sm:rounded-[32px] sm:p-6 md:p-7">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-cyan-50 text-cyan-700">
                 <CalendarClock className="h-6 w-6" />
@@ -599,9 +631,13 @@ export default async function DashboardPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                   Bookings
                 </p>
-                <h2 className="mt-1 font-display text-[2rem] leading-none text-slate-900">
+                <h2 className="mt-1 font-display text-[1.75rem] leading-none text-slate-900 sm:text-[2rem]">
                   Upcoming queue
                 </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  {totalSessions} session log{totalSessions === 1 ? "" : "s"} recorded for this
+                  center so far.
+                </p>
               </div>
             </div>
 
@@ -617,7 +653,7 @@ export default async function DashboardPage() {
                     href={`/patients/${appointment.patient.id}`}
                     className="block rounded-[24px] bg-slate-50 px-5 py-4 transition-colors hover:bg-cyan-50/70"
                   >
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <p className="text-base font-semibold text-slate-900">
                           {appointment.patient.name}
@@ -626,7 +662,7 @@ export default async function DashboardPage() {
                           {formatDateTime(appointment.date)}
                         </p>
                       </div>
-                      <span className="rounded-full bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 shadow-sm">
+                      <span className="self-start rounded-full bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 shadow-sm sm:self-auto">
                         {appointment.status}
                       </span>
                     </div>
@@ -640,10 +676,7 @@ export default async function DashboardPage() {
     );
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const { start: today, end: tomorrow } = getIndiaDayRange(new Date());
 
   const [totalPatients, totalSessions, appointmentsToday] = await Promise.all([
     prisma.patient.count(),
@@ -668,7 +701,7 @@ export default async function DashboardPage() {
         return (
           <article
             key={item.label}
-            className="rounded-[28px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl"
+            className="rounded-[28px] border border-white/80 bg-white/82 p-5 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl sm:p-6"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-cyan-50 text-cyan-700">
               <Icon className="h-6 w-6" />
@@ -676,7 +709,7 @@ export default async function DashboardPage() {
             <p className="mt-5 text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
               {item.label}
             </p>
-            <p className="mt-2 text-4xl font-semibold text-slate-900">{item.value}</p>
+            <p className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl">{item.value}</p>
           </article>
         );
       })}

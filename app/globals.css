@@ -60,3 +60,12 @@ a {
   background: rgba(24, 193, 212, 0.18);
   color: #09353b;
 }
+
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}

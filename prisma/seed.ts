@@ -1,4 +1,8 @@
 import { PrismaClient } from "@prisma/client";
+import {
+  generateCenterMachineSeed,
+  generateCenterStaffSeed,
+} from "../lib/center-operations";
 
 const prisma = new PrismaClient();
 
@@ -124,7 +128,9 @@ async function findOrCreateCity(name: string) {
   });
 }
 
-async function syncIdSequence(tableName: "City" | "Center") {
+async function syncIdSequence(
+  tableName: "City" | "Center" | "Machine" | "StaffMember"
+) {
   await prisma.$executeRawUnsafe(`
     SELECT setval(
       pg_get_serial_sequence('"${tableName}"', 'id'),
@@ -132,6 +138,71 @@ async function syncIdSequence(tableName: "City" | "Center") {
       true
     )
   `);
+}
+
+async function seedCenterOperations(centerId: number, centerCode: string) {
+  const machineSeed = generateCenterMachineSeed(centerCode);
+  const staffSeed = generateCenterStaffSeed(centerCode);
+
+  for (const machine of machineSeed) {
+    await prisma.machine.upsert({
+      where: {
+        centerId_code: {
+          centerId,
+          code: machine.code,
+        },
+      },
+      update: {
+        model: machine.model,
+        manufacturer: machine.manufacturer,
+        status: machine.status,
+        notes: machine.notes,
+        isActive: true,
+      },
+      create: {
+        centerId,
+        code: machine.code,
+        model: machine.model,
+        manufacturer: machine.manufacturer,
+        status: machine.status,
+        notes: machine.notes,
+      },
+    });
+  }
+
+  for (const staffMember of staffSeed) {
+    await prisma.staffMember.upsert({
+      where: {
+        centerId_code: {
+          centerId,
+          code: staffMember.code,
+        },
+      },
+      update: {
+        name: staffMember.name,
+        role: staffMember.role,
+        specialization: staffMember.specialization,
+        phone: staffMember.phone,
+        shiftLabel: staffMember.shiftLabel,
+        availableSlots: staffMember.availableSlots,
+        capacityPerSlot: staffMember.capacityPerSlot,
+        isAvailableToday: staffMember.isAvailableToday,
+        isActive: true,
+      },
+      create: {
+        centerId,
+        code: staffMember.code,
+        name: staffMember.name,
+        role: staffMember.role,
+        specialization: staffMember.specialization,
+        phone: staffMember.phone,
+        shiftLabel: staffMember.shiftLabel,
+        availableSlots: staffMember.availableSlots,
+        capacityPerSlot: staffMember.capacityPerSlot,
+        isAvailableToday: staffMember.isAvailableToday,
+      },
+    });
+  }
 }
 
 async function main() {
@@ -143,21 +214,26 @@ async function main() {
   for (const cityEntry of cityCatalog) {
     const city = await findOrCreateCity(cityEntry.name);
 
-    for (const center of cityEntry.centers) {
-      await prisma.center.upsert({
-        where: { centerCode: center.centerCode },
+    for (const centerDefinition of cityEntry.centers) {
+      const center = await prisma.center.upsert({
+        where: { centerCode: centerDefinition.centerCode },
         update: {
-          name: center.name,
-          address: center.address,
+          name: centerDefinition.name,
+          address: centerDefinition.address,
           cityId: city.id,
         },
         create: {
-          ...center,
+          ...centerDefinition,
           cityId: city.id,
         },
       });
+
+      await seedCenterOperations(center.id, center.centerCode);
     }
   }
+
+  await syncIdSequence("Machine");
+  await syncIdSequence("StaffMember");
 
   console.log("Seeding applied successfully! Database is ready to use.");
 }

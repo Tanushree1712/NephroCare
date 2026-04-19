@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { getCenterLabel, getRecommendedCenter, type CenterOption } from "@/lib/patient-utils";
+import { getAppointmentSlotFromTimeValue } from "@/lib/appointment-slots";
 
 type LocalUserPayload = {
   patientId?: number | null;
@@ -23,12 +24,33 @@ type LocalUserPayload = {
   } | null;
 };
 
+type AvailabilityPayload = {
+  center: {
+    id: number;
+    name: string;
+    city: string;
+    centerCode: string;
+  };
+  slot: string;
+  slotLabel: string;
+  scheduledCount: number;
+  machineCapacity: number;
+  staffCapacity: number;
+  totalCapacity: number;
+  remainingCapacity: number;
+  availableStaffCount: number;
+  availableMachineCount: number;
+  canBook: boolean;
+};
+
 export default function BookDialysisPage() {
   const router = useRouter();
   const [centers, setCenters] = useState<CenterOption[]>([]);
   const [localUser, setLocalUser] = useState<LocalUserPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availability, setAvailability] = useState<AvailabilityPayload | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [form, setForm] = useState({
@@ -102,6 +124,52 @@ export default function BookDialysisPage() {
     };
   }, [router]);
 
+  useEffect(() => {
+    const slot = getAppointmentSlotFromTimeValue(form.time);
+
+    if (!form.centerId || !form.date || !slot) {
+      setAvailability(null);
+      setAvailabilityLoading(false);
+      return;
+    }
+
+    const slotValue = slot;
+    const controller = new AbortController();
+
+    async function loadAvailability() {
+      try {
+        setAvailabilityLoading(true);
+        const response = await fetch(
+          `/api/availability?centerId=${encodeURIComponent(form.centerId)}&date=${encodeURIComponent(
+            form.date
+          )}&slot=${encodeURIComponent(slotValue)}`,
+          {
+            signal: controller.signal,
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to load availability");
+        }
+
+        const payload = (await response.json()) as AvailabilityPayload;
+        setAvailability(payload);
+      } catch {
+        if (!controller.signal.aborted) {
+          setAvailability(null);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setAvailabilityLoading(false);
+        }
+      }
+    }
+
+    void loadAvailability();
+
+    return () => controller.abort();
+  }, [form.centerId, form.date, form.time]);
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -114,6 +182,13 @@ export default function BookDialysisPage() {
     setError("");
 
     const dateTime = new Date(`${form.date}T${form.time}:00`);
+    const slot = getAppointmentSlotFromTimeValue(form.time);
+
+    if (!slot) {
+      setSubmitting(false);
+      setError("Please choose a valid time window.");
+      return;
+    }
 
     try {
       const response = await fetch("/api/appointments", {
@@ -125,11 +200,14 @@ export default function BookDialysisPage() {
           patientId: localUser.patientId,
           centerId: Number(form.centerId),
           date: dateTime.toISOString(),
+          slot,
         }),
       });
 
+      const payload = (await response.json()) as { error?: string };
+
       if (!response.ok) {
-        throw new Error("Booking failed.");
+        throw new Error(payload.error ?? "Booking failed.");
       }
 
       setSuccess(true);
@@ -137,8 +215,12 @@ export default function BookDialysisPage() {
         router.push("/");
         router.refresh();
       }, 1400);
-    } catch {
-      setError("We could not confirm the session. Please try again.");
+    } catch (bookingError) {
+      setError(
+        bookingError instanceof Error
+          ? bookingError.message
+          : "We could not confirm the session. Please try again."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -171,12 +253,12 @@ export default function BookDialysisPage() {
   );
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-      <section className="rounded-[32px] bg-[linear-gradient(165deg,#0d3c44_0%,#0f98a2_42%,#17bfd3_100%)] p-6 text-white shadow-[0_24px_80px_rgba(10,120,132,0.22)] md:p-8">
+    <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+      <section className="rounded-[30px] bg-[linear-gradient(165deg,#0d3c44_0%,#0f98a2_42%,#17bfd3_100%)] p-5 text-white shadow-[0_24px_80px_rgba(10,120,132,0.22)] sm:rounded-[32px] sm:p-6 md:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-100/74">
           Book dialysis
         </p>
-        <h1 className="mt-4 font-display text-[2.6rem] leading-[0.95]">
+        <h1 className="mt-4 font-display text-[2.15rem] leading-[0.95] sm:text-[2.6rem]">
           Schedule your next care session.
         </h1>
         <p className="mt-5 text-sm leading-7 text-cyan-50/92">
@@ -225,17 +307,17 @@ export default function BookDialysisPage() {
         </div>
       </section>
 
-      <section className="rounded-[32px] border border-white/80 bg-white/84 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl md:p-8">
-        <div className="flex items-center justify-between">
+      <section className="rounded-[30px] border border-white/80 bg-white/84 p-5 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl sm:rounded-[32px] sm:p-6 md:p-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
               Session planner
             </p>
-            <h2 className="mt-3 font-display text-[2.1rem] leading-none text-slate-900">
+            <h2 className="mt-3 font-display text-[1.85rem] leading-none text-slate-900 sm:text-[2.1rem]">
               Pick your slot
             </h2>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">
+          <div className="inline-flex items-center gap-2 self-start rounded-full bg-cyan-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">
             <Sparkles className="h-4 w-4" />
             Patient-linked booking
           </div>
@@ -331,13 +413,50 @@ export default function BookDialysisPage() {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={
+              submitting ||
+              availabilityLoading ||
+              Boolean(availability && !availability.canBook)
+            }
             className="inline-flex w-full items-center justify-center gap-2 rounded-[20px] bg-[linear-gradient(135deg,#17bfd3_0%,#0e9a9d_100%)] px-5 py-4 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(20,190,211,0.28)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {submitting ? "Confirming your session..." : "Confirm booking"}
             <Sparkles className="h-4 w-4" />
           </button>
         </form>
+
+        {availabilityLoading ? (
+          <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-medium text-slate-600">
+            Checking machine and staff availability...
+          </div>
+        ) : availability ? (
+          <div
+            className={`mt-5 rounded-[24px] border px-5 py-4 text-sm ${
+              availability.canBook
+                ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                : "border-amber-100 bg-amber-50 text-amber-700"
+            }`}
+          >
+            <p className="font-semibold">
+              {availability.canBook
+                ? `${availability.remainingCapacity} slot${
+                    availability.remainingCapacity === 1 ? "" : "s"
+                  } still open`
+                : "This slot is currently full"}
+            </p>
+            <p className="mt-2 leading-6">
+              {availability.center.name} has {availability.availableMachineCount} ready machine
+              {availability.availableMachineCount === 1 ? "" : "s"} and{" "}
+              {availability.availableStaffCount} available staff member
+              {availability.availableStaffCount === 1 ? "" : "s"} for {availability.slotLabel}.
+            </p>
+            <p className="mt-2 leading-6">
+              {availability.scheduledCount} of {availability.totalCapacity} supported booking
+              {availability.totalCapacity === 1 ? "" : "s"} are already allocated for this
+              window.
+            </p>
+          </div>
+        ) : null}
       </section>
     </div>
   );

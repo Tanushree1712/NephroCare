@@ -48,6 +48,7 @@ export default async function PatientProfileRoute({
         take: 3,
         include: {
           center: true,
+          machine: true,
         },
       },
       files: {
@@ -98,6 +99,12 @@ export default async function PatientProfileRoute({
           id: appointment.id,
           date: appointment.date.toISOString(),
           status: appointment.status,
+          slot: appointment.slot as "MORNING" | "AFTERNOON" | "EVENING",
+          machine: appointment.machine
+            ? {
+                code: appointment.machine.code,
+              }
+            : null,
           center: {
             name: appointment.center.name,
           },

@@ -196,13 +196,13 @@ export default function PatientsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[34px] bg-[linear-gradient(135deg,#073d48_0%,#0f98a2_48%,#17bfd3_100%)] px-6 py-7 text-white shadow-[0_24px_80px_rgba(10,120,132,0.22)] md:px-8 md:py-8">
+      <section className="rounded-[30px] bg-[linear-gradient(135deg,#073d48_0%,#0f98a2_48%,#17bfd3_100%)] px-5 py-6 text-white shadow-[0_24px_80px_rgba(10,120,132,0.22)] sm:rounded-[34px] sm:px-6 sm:py-7 md:px-8 md:py-8">
         <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-100/74">
               {centerScoped ? "Reception workspace" : "Admin workspace"}
             </p>
-            <h1 className="mt-4 font-display text-[2.8rem] leading-[0.95]">
+            <h1 className="mt-4 font-display text-[2.15rem] leading-[0.95] sm:text-[2.8rem]">
               {centerScoped
                 ? `${assignedCenterName} registrations.`
                 : "Patient registry and onboarding."}
@@ -240,7 +240,7 @@ export default function PatientsPage() {
             </div>
           </div>
 
-          <div className="rounded-[30px] border border-white/14 bg-white/10 p-5 backdrop-blur md:p-6">
+          <div className="rounded-[28px] border border-white/14 bg-white/10 p-4 backdrop-blur sm:rounded-[30px] sm:p-5 md:p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-white/14">
                 <UserPlus2 className="h-6 w-6" />
@@ -249,7 +249,7 @@ export default function PatientsPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/72">
                   {centerScoped ? "Center intake" : "Quick create"}
                 </p>
-                <h2 className="mt-1 font-display text-[2rem] leading-none text-white">
+                <h2 className="mt-1 font-display text-[1.75rem] leading-none text-white sm:text-[2rem]">
                   Add patient
                 </h2>
               </div>
@@ -366,13 +366,13 @@ export default function PatientsPage() {
         </div>
       </section>
 
-      <section className="rounded-[32px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl md:p-7">
+      <section className="rounded-[30px] border border-white/80 bg-white/82 p-5 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl sm:rounded-[32px] sm:p-6 md:p-7">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
               Patient list
             </p>
-            <h2 className="mt-2 font-display text-[2rem] leading-none text-slate-900">
+            <h2 className="mt-2 font-display text-[1.75rem] leading-none text-slate-900 sm:text-[2rem]">
               Search and review
             </h2>
           </div>
@@ -402,7 +402,7 @@ export default function PatientsPage() {
                 key={patient.id}
                 className="rounded-[28px] bg-slate-50 p-5 transition-transform hover:-translate-y-0.5"
               >
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                       Patient profile
@@ -443,7 +443,7 @@ export default function PatientsPage() {
                   </div>
                 </div>
 
-                <div className="mt-5 flex items-center justify-between gap-4">
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm text-slate-500">{patient.phone}</p>
                   <Link
                     href={`/patients/${patient.id}`}

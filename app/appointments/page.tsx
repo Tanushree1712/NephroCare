@@ -9,6 +9,7 @@ import {
   NotebookTabs,
   UserRound,
 } from "lucide-react";
+import { getAppointmentSlotLabel, type AppointmentSlot } from "@/lib/appointment-slots";
 
 type Center = {
   id: number;
@@ -29,6 +30,11 @@ type Appointment = {
   id: number;
   date: string;
   status: string;
+  slot: AppointmentSlot;
+  machine?: {
+    id: number;
+    code: string;
+  } | null;
   patient: {
     id: number;
     name: string;
@@ -214,13 +220,13 @@ export default function AppointmentPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[34px] bg-[linear-gradient(135deg,#073d48_0%,#0f98a2_48%,#17bfd3_100%)] px-6 py-7 text-white shadow-[0_24px_80px_rgba(10,120,132,0.22)] md:px-8 md:py-8">
+      <section className="rounded-[30px] bg-[linear-gradient(135deg,#073d48_0%,#0f98a2_48%,#17bfd3_100%)] px-5 py-6 text-white shadow-[0_24px_80px_rgba(10,120,132,0.22)] sm:rounded-[34px] sm:px-6 sm:py-7 md:px-8 md:py-8">
         <div className="grid gap-8 xl:grid-cols-[1.02fr_0.98fr]">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-100/74">
               {centerScoped ? "Center bookings" : "Appointment planning"}
             </p>
-            <h1 className="mt-4 font-display text-[2.8rem] leading-[0.95]">
+            <h1 className="mt-4 font-display text-[2.15rem] leading-[0.95] sm:text-[2.8rem]">
               {centerScoped
                 ? `Manage bookings for ${centerName}.`
                 : "Schedule and manage dialysis visits."}
@@ -254,7 +260,7 @@ export default function AppointmentPage() {
             </div>
           </div>
 
-          <div className="rounded-[30px] border border-white/14 bg-white/10 p-5 backdrop-blur md:p-6">
+          <div className="rounded-[28px] border border-white/14 bg-white/10 p-4 backdrop-blur sm:rounded-[30px] sm:p-5 md:p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-white/14">
                 <CalendarClock className="h-6 w-6" />
@@ -263,7 +269,7 @@ export default function AppointmentPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/72">
                   New appointment
                 </p>
-                <h2 className="mt-1 font-display text-[2rem] leading-none text-white">
+                <h2 className="mt-1 font-display text-[1.75rem] leading-none text-white sm:text-[2rem]">
                   Book a session
                 </h2>
               </div>
@@ -360,12 +366,12 @@ export default function AppointmentPage() {
         </div>
       </section>
 
-      <section className="rounded-[32px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl md:p-7">
+      <section className="rounded-[30px] border border-white/80 bg-white/82 p-5 shadow-[0_24px_80px_rgba(17,124,136,0.08)] backdrop-blur-xl sm:rounded-[32px] sm:p-6 md:p-7">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
             Appointment queue
           </p>
-          <h2 className="mt-2 font-display text-[2rem] leading-none text-slate-900">
+          <h2 className="mt-2 font-display text-[1.75rem] leading-none text-slate-900 sm:text-[2rem]">
             Upcoming and recent bookings
           </h2>
         </div>
@@ -383,7 +389,7 @@ export default function AppointmentPage() {
             {appointments.map((appointment) => (
               <article
                 key={appointment.id}
-                className="grid gap-4 rounded-[28px] bg-slate-50 p-5 lg:grid-cols-[1.1fr_1fr_auto]"
+                className="grid gap-4 rounded-[28px] bg-slate-50 p-4 sm:p-5 lg:grid-cols-[1.1fr_1fr_auto]"
               >
                 <div>
                   <div className="flex items-center gap-2 text-slate-900">
@@ -396,7 +402,7 @@ export default function AppointmentPage() {
                   </p>
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                   <div className="rounded-[20px] bg-white px-4 py-3 text-sm text-slate-600">
                     <div className="flex items-center gap-2 text-slate-900">
                       <Building2 className="h-4 w-4 text-cyan-700" />
@@ -410,12 +416,20 @@ export default function AppointmentPage() {
                       <span className="font-semibold capitalize">{appointment.status}</span>
                     </div>
                     <p className="mt-1">Booking #{appointment.id}</p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-400">
+                      {getAppointmentSlotLabel(appointment.slot)}
+                    </p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-400">
+                      {appointment.machine?.code
+                        ? `Assigned ${appointment.machine.code}`
+                        : "Machine auto-assigned at booking"}
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-center">
                   <select
-                    className={`${inputClasses} min-w-40 capitalize`}
+                    className={`${inputClasses} w-full min-w-0 capitalize sm:min-w-40`}
                     value={appointment.status}
                     onChange={(event) => updateStatus(appointment.id, event.target.value)}
                   >

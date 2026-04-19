@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getCenterScopeId, isPatientPortalUser } from "@/lib/user-access";
 import { NextResponse } from "next/server";
 
+const allowedStatuses = new Set(["scheduled", "completed", "missed", "cancelled"]);
+
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -27,11 +29,17 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid appointment ID" }, { status: 400 });
     }
 
-    if (!body.status) {
+    if (!body.status || typeof body.status !== "string") {
       return NextResponse.json(
         { error: "Status is required" },
         { status: 400 }
       );
+    }
+
+    const status = body.status.toLowerCase();
+
+    if (!allowedStatuses.has(status)) {
+      return NextResponse.json({ error: "Invalid status." }, { status: 400 });
     }
 
     if (centerScopeId) {
@@ -50,7 +58,7 @@ export async function PATCH(
 
     const appointment = await prisma.appointment.update({
       where: { id: appointmentId },
-      data: { status: body.status },
+      data: { status },
     });
 
     return NextResponse.json(appointment);

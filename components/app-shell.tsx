@@ -12,7 +12,9 @@ import {
   House,
   LogOut,
   Sparkles,
+  Stethoscope,
   Users,
+  Waves,
 } from "lucide-react";
 import type { CurrentAppUser } from "@/lib/current-user";
 import { getUserPortalKind } from "@/lib/user-access";
@@ -64,6 +66,19 @@ export function AppShell({ children, user }: AppShellProps) {
     icon: typeof House;
   }>;
 
+  const centerNavigation = [
+    { href: "/", label: "Dashboard", compactLabel: "Home", icon: House },
+    { href: "/patients", label: "Patients", compactLabel: "Patients", icon: Users },
+    {
+      href: "/appointments",
+      label: "Appointments",
+      compactLabel: "Bookings",
+      icon: CalendarRange,
+    },
+    { href: "/machines", label: "Machines", compactLabel: "Machines", icon: Waves },
+    { href: "/staff", label: "Staff", compactLabel: "Staff", icon: Stethoscope },
+  ];
+
   const adminNavigation = [
     { href: "/", label: "Dashboard", compactLabel: "Home", icon: House },
     { href: "/patients", label: "Patients", compactLabel: "Patients", icon: Users },
@@ -75,7 +90,11 @@ export function AppShell({ children, user }: AppShellProps) {
     },
   ];
 
-  const navigation = isPatientPortal ? patientNavigation : adminNavigation;
+  const navigation = isPatientPortal
+    ? patientNavigation
+    : isCenterPortal
+      ? centerNavigation
+      : adminNavigation;
   const initials = user.name
     .split(" ")
     .map((name) => name[0])
@@ -109,12 +128,11 @@ export function AppShell({ children, user }: AppShellProps) {
   const promoCopy = isPatientPortal
     ? "Keep your dialysis details, bookings, and center preferences in one calm, patient-friendly space."
     : isCenterPortal
-      ? "Review registrations, bookings, and patient activity for your assigned center without the noise of the wider network."
+      ? "Review registrations, bookings, machine readiness, and on-duty staff for your assigned center without the noise of the wider network."
       : "Stay on top of registrations, appointments, and clinical coordination across the NephroCare network.";
-
   return (
     <div className="relative min-h-screen">
-      <div className="mx-auto flex w-full max-w-[1480px] gap-6 px-4 py-5 lg:px-6 lg:py-6">
+      <div className="mx-auto flex w-full max-w-[1480px] gap-4 px-3 py-4 sm:px-4 sm:py-5 lg:gap-6 lg:px-6 lg:py-6">
         <aside className="hidden w-[280px] shrink-0 flex-col gap-6 lg:flex">
           <div className="rounded-[30px] border border-white/70 bg-white/78 p-6 shadow-[0_24px_80px_rgba(17,124,136,0.12)] backdrop-blur-xl">
             <Link href="/" className="flex items-center gap-3">
@@ -199,7 +217,7 @@ export function AppShell({ children, user }: AppShellProps) {
         </aside>
 
         <div className="min-w-0 flex-1">
-          <header className="rounded-[28px] border border-white/70 bg-white/75 px-5 py-4 shadow-[0_24px_80px_rgba(20,139,152,0.08)] backdrop-blur-xl">
+          <header className="rounded-[24px] border border-white/70 bg-white/75 px-4 py-4 shadow-[0_24px_80px_rgba(20,139,152,0.08)] backdrop-blur-xl sm:rounded-[28px] sm:px-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,#17bfd3_0%,#0e9a9d_100%)] text-white shadow-[0_14px_30px_rgba(20,190,211,0.22)] lg:hidden">
@@ -209,16 +227,16 @@ export function AppShell({ children, user }: AppShellProps) {
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                     {headerEyebrow}
                   </p>
-                  <h2 className="font-display text-[1.9rem] leading-none text-slate-900">
+                  <h2 className="font-display text-[1.55rem] leading-none text-slate-900 sm:text-[1.9rem]">
                     {headerTitle}
                   </h2>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
                 <Link
                   href={primaryActionHref}
-                  className="inline-flex items-center gap-2 rounded-[18px] bg-[linear-gradient(135deg,#17bfd3_0%,#0e9a9d_100%)] px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(20,190,211,0.25)] transition-transform hover:-translate-y-0.5"
+                  className="inline-flex items-center justify-center gap-2 rounded-[18px] bg-[linear-gradient(135deg,#17bfd3_0%,#0e9a9d_100%)] px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(20,190,211,0.25)] transition-transform hover:-translate-y-0.5"
                 >
                   <Sparkles className="h-4 w-4" />
                   {primaryActionLabel}
@@ -230,12 +248,12 @@ export function AppShell({ children, user }: AppShellProps) {
             </div>
           </header>
 
-          <main className="pb-24 pt-6 lg:pb-6">{children}</main>
+          <main className="pb-28 pt-6 sm:pb-32 lg:pb-6">{children}</main>
         </div>
       </div>
 
-      <div className="fixed bottom-4 left-1/2 z-40 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-[28px] border border-white/80 bg-white/88 p-2 shadow-[0_20px_60px_rgba(15,118,128,0.18)] backdrop-blur-xl lg:hidden">
-        <div className={`grid gap-2 ${navigation.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+      <div className="fixed bottom-3 left-1/2 z-40 w-[calc(100%-1rem)] max-w-[560px] -translate-x-1/2 rounded-[26px] border border-white/80 bg-white/88 p-2 shadow-[0_20px_60px_rgba(15,118,128,0.18)] backdrop-blur-xl lg:hidden sm:bottom-4 sm:w-[calc(100%-2rem)] sm:rounded-[28px]">
+        <div className="scrollbar-hidden flex gap-2 overflow-x-auto">
           {navigation.map((item) => {
             const Icon = item.icon;
             const isActive = isActiveRoute(pathname, item.href);
@@ -244,14 +262,14 @@ export function AppShell({ children, user }: AppShellProps) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center gap-1 rounded-[20px] px-3 py-3 text-xs font-semibold transition-colors ${
+                className={`flex min-w-[76px] flex-1 shrink-0 flex-col items-center gap-1 rounded-[20px] px-3 py-3 text-[11px] font-semibold transition-colors sm:text-xs ${
                   isActive
                     ? "bg-[linear-gradient(135deg,#17bfd3_0%,#0e9a9d_100%)] text-white"
                     : "text-slate-500"
                 }`}
               >
                 <Icon className="h-5 w-5" />
-                <span>{item.compactLabel}</span>
+                <span className="whitespace-nowrap">{item.compactLabel}</span>
               </Link>
             );
           })}

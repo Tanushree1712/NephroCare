@@ -22,38 +22,79 @@ model Center {
   city       City     @relation(fields: [cityId], references: [id])
 
   patients     Patient[]
-  appointments Appointment[]   // ✅ FIX ADDED
+  appointments Appointment[]
+  machines     Machine[]
+  staffMembers StaffMember[]
   users        User[]
 }
 
+model Machine {
+  id           Int      @id @default(autoincrement())
+  centerId     Int
+  code         String
+  model        String
+  manufacturer String
+  status       String   @default("available")
+  notes        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  center       Center        @relation(fields: [centerId], references: [id])
+  appointments Appointment[]
+
+  @@unique([centerId, code])
+  @@index([centerId, isActive, status])
+}
+
+model StaffMember {
+  id               Int      @id @default(autoincrement())
+  centerId         Int
+  code             String
+  name             String
+  role             String
+  specialization   String?
+  phone            String?
+  shiftLabel       String
+  availableSlots   String[]
+  capacityPerSlot  Int      @default(1)
+  isAvailableToday Boolean  @default(true)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  center           Center   @relation(fields: [centerId], references: [id])
+
+  @@unique([centerId, code])
+  @@index([centerId, isActive, isAvailableToday])
+}
+
 model Patient {
-  id          Int     @id @default(autoincrement())
-  name        String
-  age         Int
-  gender      String
-  phone       String
-  bloodGroup  String?
-  location    String?
-  primaryDiagnosis String?
-  dialysisType String?
-  dialysisFrequency String?
-  vascularAccess String?
-  dialysisSince DateTime?
-  preferredSlot String?
-  allergies   String?
-  comorbidities String?
-  medicalHistory String?
-  emergencyContactName String?
+  id                    Int      @id @default(autoincrement())
+  name                  String
+  age                   Int
+  gender                String
+  phone                 String
+  bloodGroup            String?
+  location              String?
+  primaryDiagnosis      String?
+  dialysisType          String?
+  dialysisFrequency     String?
+  vascularAccess        String?
+  dialysisSince         DateTime?
+  preferredSlot         String?
+  allergies             String?
+  comorbidities         String?
+  medicalHistory        String?
+  emergencyContactName  String?
   emergencyContactPhone String?
-  centerId    Int
-  center      Center  @relation(fields: [centerId], references: [id])
+  centerId              Int
+  center                Center   @relation(fields: [centerId], references: [id])
 
   appointments Appointment[]
   sessions     Session[]
-  files        File[]          // Files relation
-  user         User?           // 1-to-1 User relation
+  files        File[]
+  user         User?
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model Appointment {
@@ -62,12 +103,18 @@ model Appointment {
   centerId  Int
   date      DateTime
   status    String   @default("scheduled")
+  slot      String   @default("MORNING")
+  machineId Int?
 
-  patient   Patient  @relation(fields: [patientId], references: [id])
-  center    Center   @relation(fields: [centerId], references: [id])
-  sessions  Session[]
+  patient  Patient  @relation(fields: [patientId], references: [id])
+  center   Center   @relation(fields: [centerId], references: [id])
+  machine  Machine? @relation(fields: [machineId], references: [id])
+  sessions Session[]
 
   createdAt DateTime @default(now())
+
+  @@index([centerId, date, slot, status])
+  @@index([patientId, date, slot, status])
 }
 
 model Session {
@@ -75,15 +122,15 @@ model Session {
   appointmentId Int
   patientId     Int
 
-  weightBefore  Float?
-  weightAfter   Float?
-  bp            String?
-  notes         String?
+  weightBefore Float?
+  weightAfter  Float?
+  bp           String?
+  notes        String?
 
-  createdAt     DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  appointment   Appointment @relation(fields: [appointmentId], references: [id])
-  patient       Patient     @relation(fields: [patientId], references: [id])
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  patient     Patient     @relation(fields: [patientId], references: [id])
 }
 
 model File {
@@ -93,19 +140,19 @@ model File {
   fileType   String
   uploadedAt DateTime @default(now())
 
-  patient    Patient  @relation(fields: [patientId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id])
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  phone     String?
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String   @unique
+  phone      String?
   supabaseId String   @unique
   role       String   @default("STAFF")
-  centerId  Int?     
-  patientId Int?     @unique
-  
-  center    Center?  @relation(fields: [centerId], references: [id])
-  patient   Patient? @relation(fields: [patientId], references: [id])
+  centerId   Int?
+  patientId  Int?     @unique
+
+  center  Center?  @relation(fields: [centerId], references: [id])
+  patient Patient? @relation(fields: [patientId], references: [id])
 }

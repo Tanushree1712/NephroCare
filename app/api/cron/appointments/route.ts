@@ -1,45 +1,55 @@
-import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { getCronSecret } from "@/lib/env";
+import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const cronSecret = getCronSecret();
+  const authHeader = request.headers.get("authorization");
+
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const now = new Date();
-    
-    // Find scheduled appointments where the date is in the past
-    // and no sessions were actually logged.
+
     const expiredAppointments = await prisma.appointment.findMany({
       where: {
         date: {
-          lt: now
+          lt: now,
         },
         status: "scheduled",
         sessions: {
-          none: {} // Must have NO related sessions
-        }
-      }
+          none: {},
+        },
+      },
     });
 
     if (expiredAppointments.length === 0) {
-      return NextResponse.json({ message: "System sweep complete: 0 expired appointments found." });
+      return NextResponse.json({
+        message: "System sweep complete: 0 expired appointments found.",
+      });
     }
 
-    const ids = expiredAppointments.map((a) => a.id);
+    const ids = expiredAppointments.map((appointment) => appointment.id);
 
     const updated = await prisma.appointment.updateMany({
       where: {
-        id: { in: ids }
+        id: { in: ids },
       },
       data: {
-        status: "missed"
-      }
+        status: "missed",
+      },
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: `System sweep complete: Marked ${updated.count} expired appointments as missed.`,
-      updatedIds: ids
+      updatedIds: ids,
     });
-
   } catch {
-    return NextResponse.json({ error: "Failed to execute background sweep." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to execute background sweep." },
+      { status: 500 }
+    );
   }
 }

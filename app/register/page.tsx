@@ -409,16 +409,16 @@ export default function RegisterPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-8">
-      <div className="w-full max-w-[1280px] rounded-[40px] border border-white/80 bg-white/60 p-4 shadow-[0_24px_80px_rgba(17,124,136,0.12)] backdrop-blur-2xl md:p-6">
+      <div className="w-full max-w-[1280px] rounded-[32px] border border-white/80 bg-white/60 p-3 shadow-[0_24px_80px_rgba(17,124,136,0.12)] backdrop-blur-2xl sm:rounded-[40px] sm:p-4 md:p-6">
         <div className="grid gap-4 xl:grid-cols-[0.78fr_1.22fr]">
-          <section className="rounded-[32px] bg-[linear-gradient(165deg,#0f98a2_0%,#19c1d5_56%,#a2f4f8_100%)] p-8 text-white">
+          <section className="rounded-[28px] bg-[linear-gradient(165deg,#0f98a2_0%,#19c1d5_56%,#a2f4f8_100%)] p-6 text-white sm:rounded-[32px] sm:p-8">
             <div className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-white/18">
               <Activity className="h-7 w-7" />
             </div>
             <p className="mt-8 text-xs font-semibold uppercase tracking-[0.32em] text-cyan-50/82">
               New patient onboarding
             </p>
-            <h1 className="mt-4 font-display text-[2.7rem] leading-[0.95]">
+            <h1 className="mt-4 font-display text-[2.2rem] leading-[0.95] sm:text-[2.7rem]">
               Build a profile that follows the patient, not the paperwork.
             </h1>
             <p className="mt-5 max-w-sm text-sm leading-7 text-cyan-50/92">
@@ -462,13 +462,13 @@ export default function RegisterPage() {
             </Link>
           </section>
 
-          <section className="rounded-[32px] bg-white/92 p-6 md:p-8 xl:p-10">
+          <section className="rounded-[28px] bg-white/92 p-5 sm:rounded-[32px] sm:p-6 md:p-8 xl:p-10">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
                   Patient registration
                 </p>
-                <h2 className="mt-3 font-display text-[2.2rem] leading-none text-slate-900">
+                <h2 className="mt-3 font-display text-[1.95rem] leading-none text-slate-900 sm:text-[2.2rem]">
                   Create your care profile
                 </h2>
               </div>

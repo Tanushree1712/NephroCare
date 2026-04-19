@@ -151,13 +151,13 @@ export function PatientProfileEditor({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/25 px-3 py-3 backdrop-blur-sm md:px-6 md:py-6">
-      <div className="flex h-full w-full max-w-[780px] flex-col overflow-hidden rounded-[32px] border border-white/80 bg-white shadow-[0_24px_80px_rgba(17,124,136,0.18)]">
-        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5 md:px-7">
+      <div className="flex h-full w-full max-w-[780px] flex-col overflow-hidden rounded-[28px] border border-white/80 bg-white shadow-[0_24px_80px_rgba(17,124,136,0.18)] sm:rounded-[32px]">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-4 py-4 sm:px-6 sm:py-5 md:px-7">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
               Edit profile
             </p>
-            <h2 className="mt-2 font-display text-[2rem] leading-none text-slate-900">
+            <h2 className="mt-2 font-display text-[1.7rem] leading-none text-slate-900 sm:text-[2rem]">
               Update care details
             </h2>
           </div>
@@ -171,7 +171,7 @@ export function PatientProfileEditor({
         </div>
 
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 space-y-7 overflow-y-auto px-6 py-6 md:px-7">
+          <div className="min-h-0 flex-1 space-y-7 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 md:px-7">
             {error ? (
               <div className="rounded-[20px] border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
                 {error}
@@ -481,18 +481,18 @@ export function PatientProfileEditor({
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-6 py-5 md:px-7">
+          <div className="flex flex-col-reverse gap-3 border-t border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-6 sm:py-5 md:px-7">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-[18px] border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+              className="w-full rounded-[18px] border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 sm:w-auto"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving || isPending}
-              className="inline-flex items-center gap-2 rounded-[18px] bg-[linear-gradient(135deg,#17bfd3_0%,#0e9a9d_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(20,190,211,0.22)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-[18px] bg-[linear-gradient(135deg,#17bfd3_0%,#0e9a9d_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_34px_rgba(20,190,211,0.22)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
             >
               {saving || isPending ? (
                 <>

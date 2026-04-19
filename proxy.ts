@@ -1,9 +1,8 @@
-import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { updateSession } from "@/utils/supabase/proxy";
 
-export function proxy() {
-  // Authentication is intentionally bypassed while the app relies on
-  // route-level session checks and Supabase-managed client auth.
-  return NextResponse.next();
+export async function proxy(request: NextRequest) {
+  return updateSession(request);
 }
 
 export const config = {
